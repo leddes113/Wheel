@@ -36,8 +36,8 @@ export default function TopicWheel({
   const [isSpinning, setIsSpinning] = useState(true);
   const [showFinalTopic, setShowFinalTopic] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
-  const startTimeRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
+  const startTimeRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const animate = (timestamp: number) => {

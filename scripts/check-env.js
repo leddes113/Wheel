@@ -8,6 +8,33 @@
 const fs = require('fs');
 const path = require('path');
 
+// Загрузка переменных окружения из .env файлов
+function loadEnvFiles() {
+  const envFiles = ['.env.local', '.env'];
+  
+  for (const envFile of envFiles) {
+    const envPath = path.join(process.cwd(), envFile);
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      content.split('\n').forEach(line => {
+        line = line.trim();
+        if (line && !line.startsWith('#')) {
+          const [key, ...values] = line.split('=');
+          if (key && values.length > 0) {
+            const value = values.join('=').trim();
+            // Не перезаписываем существующие переменные окружения
+            if (!process.env[key]) {
+              process.env[key] = value;
+            }
+          }
+        }
+      });
+    }
+  }
+}
+
+loadEnvFiles();
+
 const REQUIRED_FILES = [
   'data/state.json',
   'data/topics_easy.json',
@@ -71,7 +98,7 @@ try {
 
 // Проверка портов
 const port = process.env.PORT || 3000;
-console.log(`\nNetwork:');
+console.log('\nNetwork:');
 console.log(`  ℹ Application will listen on port: ${port}`);
 
 // Вывод предупреждений
