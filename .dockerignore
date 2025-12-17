@@ -1,0 +1,45 @@
+# Игнорируем при сборке Docker образа
+
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Next.js
+.next
+out
+build
+
+# Environment files
+.env*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+docs
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage
+.nyc_output
+
+# Misc
+*.log
+.vercel

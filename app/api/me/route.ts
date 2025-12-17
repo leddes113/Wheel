@@ -1,7 +1,7 @@
 // GET /api/me - получение состояния пользователя
 
 import { NextRequest, NextResponse } from "next/server";
-import { getUser, getSubmissionByFio } from "@/lib/storage";
+import { getUser, getSubmissionByFio, readState, writeState, normalizeFio } from "@/lib/storage";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,13 +17,29 @@ export async function GET(request: NextRequest) {
     }
 
     // Получаем пользователя
-    const user = await getUser(fio);
+    let user = await getUser(fio);
 
     if (!user) {
       return NextResponse.json(
         { error: "Пользователь не найден" },
         { status: 404 }
       );
+    }
+
+    // Если тема закреплена, но таймер не установлен (утверждено администратором, но пользователь видит впервые)
+    if (user.topic && !user.chosenAt && !user.deadlineAt) {
+      const now = new Date();
+      const deadline = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+      
+      // Устанавливаем таймер при первом просмотре
+      const state = await readState();
+      const userKey = normalizeFio(fio);
+      state.users[userKey].chosenAt = now.toISOString();
+      state.users[userKey].deadlineAt = deadline.toISOString();
+      await writeState(state);
+      
+      // Обновляем локальную копию пользователя
+      user = state.users[userKey];
     }
 
     // Рассчитываем оставшиеся дни, если тема закреплена
@@ -37,10 +53,15 @@ export async function GET(request: NextRequest) {
 
     // Если тема уже закреплена (assignment exists)
     if (user.topic) {
+      // Проверяем, есть ли approved submission с комментарием модератора
+      const submission = await getSubmissionByFio(fio);
+      const adminComment = submission?.status === "approved" ? submission.adminComment : undefined;
+
       return NextResponse.json({
         user,
         daysRemaining,
         status: "topic_selected",
+        adminComment,
       });
     }
 

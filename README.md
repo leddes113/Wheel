@@ -1,36 +1,220 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vibe Coding Wheel 🎡
 
-## Getting Started
+Внутреннее веб-приложение для сотрудников, которое в игровой форме выдаёт идеи для самостоятельных проектов ("вайб-кодинг").
 
-First, run the development server:
+## 📋 Описание
+
+Приложение помогает сотрудникам выбрать проект для самостоятельной разработки. Пользователь может:
+- Получить случайную тему из подготовленного пула (разной сложности)
+- Предложить свою идею (с последующей модерацией администратором)
+
+После выбора темы запускается таймер на 14 дней для реализации проекта.
+
+## 🚀 Быстрый старт
+
+### Development
 
 ```bash
+# Установите зависимости
+npm install
+
+# Создайте .env файл
+cp .env.example .env
+# Отредактируйте .env и добавьте список администраторов
+
+# Запустите dev-сервер
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откройте [http://localhost:3000](http://localhost:3000) в браузере.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Production (Docker) - рекомендуется
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Создайте .env файл
+cp .env.example .env
+# Отредактируйте .env
 
-## Learn More
+# Запустите через Docker Compose
+docker-compose up -d
 
-To learn more about Next.js, take a look at the following resources:
+# Проверьте статус
+curl http://localhost:3000/api/health
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Подробная инструкция по развертыванию: [DEPLOYMENT.md](./DEPLOYMENT.md)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🏗️ Технологии
 
-## Deploy on Vercel
+- **Frontend/Backend:** Next.js 16 (App Router)
+- **UI:** React 19, Tailwind CSS 4
+- **Storage:** File-based (JSON)
+- **Deployment:** Docker, Docker Compose
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📁 Структура проекта
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+vibe-wheel/
+├── app/                    # Next.js App Router
+│   ├── api/               # API endpoints
+│   │   ├── login/        # Авторизация пользователя
+│   │   ├── spin/         # Случайная тема
+│   │   ├── idea/         # Своя идея
+│   │   ├── me/           # Текущий пользователь
+│   │   ├── health/       # Health check
+│   │   └── admin/        # Админ API
+│   ├── admin/            # Админ-панель
+│   └── page.tsx          # Главная страница
+├── data/                  # Хранилище данных
+│   ├── state.json        # Состояние приложения
+│   ├── topics_easy.json  # Темы для начинающих
+│   └── topics_hard.json  # Темы для опытных
+├── lib/                   # Утилиты
+│   ├── storage.ts        # Работа с файловым хранилищем
+│   └── types.ts          # TypeScript типы
+├── scripts/               # Скрипты для обслуживания
+│   ├── backup.sh         # Резервное копирование (Linux/Mac)
+│   ├── restore.sh        # Восстановление (Linux/Mac)
+│   ├── backup.ps1        # Резервное копирование (Windows)
+│   └── restore.ps1       # Восстановление (Windows)
+├── nginx/                 # Nginx конфигурация
+│   └── nginx.conf        # Production reverse proxy
+├── docs/                  # Документация
+├── Dockerfile            # Docker образ
+├── docker-compose.yml    # Простое развертывание
+└── docker-compose.prod.yml # Production с Nginx
+```
+
+## 🔐 Конфигурация
+
+### Переменные окружения
+
+Создайте `.env` файл:
+
+```env
+# Список администраторов (разделитель - точка с запятой)
+ADMIN_ALLOWLIST="Иван Иванов;Петр Петров"
+
+# Node environment
+NODE_ENV=production
+
+# Порт приложения (по умолчанию 3000)
+PORT=3000
+```
+
+## 🛠️ Основные команды
+
+```bash
+# Development
+npm run dev          # Запуск dev-сервера
+npm run build        # Сборка для production
+npm start            # Запуск production сервера
+npm run lint         # Линтинг кода
+
+# Docker
+docker-compose up -d              # Запуск
+docker-compose down               # Остановка
+docker-compose logs -f            # Логи
+docker-compose restart            # Перезапуск
+
+# Резервное копирование (Linux/Mac)
+./scripts/backup.sh               # Создать бэкап
+./scripts/restore.sh <file>       # Восстановить
+
+# Резервное копирование (Windows)
+.\scripts\backup.ps1              # Создать бэкап
+.\scripts\restore.ps1 -BackupFile <file>  # Восстановить
+```
+
+## 📊 Мониторинг
+
+### Health Check
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+Ответ при нормальной работе:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-12-17T10:00:00.000Z",
+  "uptime": 3600,
+  "version": "0.1.0"
+}
+```
+
+### Логи
+
+```bash
+# Docker
+docker-compose logs -f vibe-wheel
+
+# Файлы логов (если настроены)
+tail -f logs/out.log
+tail -f logs/err.log
+```
+
+## 🔒 Безопасность
+
+- **Админ-панель:** Защищена allowlist из `.env`
+- **Rate Limiting:** Настроен в Nginx (10 req/s для API)
+- **HTTPS:** Поддерживается через Nginx + Let's Encrypt
+- **Health Checks:** Автоматическая проверка работоспособности
+
+## 📦 Резервное копирование
+
+Автоматическое резервное копирование рекомендуется настроить через cron (Linux) или Task Scheduler (Windows):
+
+```bash
+# Linux/Mac: добавьте в crontab
+0 3 * * * cd /path/to/vibe-wheel && ./scripts/backup.sh
+
+# Retention: по умолчанию хранятся бэкапы за 30 дней
+```
+
+Подробнее: [DEPLOYMENT.md](./DEPLOYMENT.md#резервное-копирование-данных)
+
+## 📖 Документация
+
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Полное руководство по развертыванию
+- [ADMIN_SETUP.md](./ADMIN_SETUP.md) - Настройка админ-панели
+- [docs/context.md](./docs/context.md) - Контекст проекта
+- [docs/ui_spec.md](./docs/ui_spec.md) - Спецификация UI
+
+## 🐛 Troubleshooting
+
+### Приложение не запускается
+
+1. Проверьте логи: `docker-compose logs vibe-wheel`
+2. Убедитесь, что порт 3000 свободен
+3. Проверьте наличие файлов в `data/`
+
+### Ошибки доступа к данным
+
+```bash
+# Проверьте права доступа
+ls -la data/
+
+# Docker: исправьте права
+sudo chown -R 1001:1001 data/
+```
+
+Подробнее: [DEPLOYMENT.md](./DEPLOYMENT.md#troubleshooting)
+
+## 📞 Поддержка
+
+При возникновении проблем:
+1. Проверьте [DEPLOYMENT.md](./DEPLOYMENT.md#troubleshooting)
+2. Изучите логи приложения
+3. Создайте issue в репозитории
+
+## 📄 Лицензия
+
+Внутреннее приложение для использования сотрудниками компании.
+
+---
+
+**Версия:** 0.1.0  
+**Next.js:** 16.0.10  
+**Node.js:** 20.x

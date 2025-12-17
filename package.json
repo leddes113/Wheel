@@ -6,7 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "docker:build": "docker build -t vibe-wheel .",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
+    "health": "curl http://localhost:3000/api/health",
+    "init-data": "node scripts/init-data.js",
+    "check-env": "node scripts/check-env.js",
+    "prestart": "npm run init-data",
+    "prebuild": "npm run check-env"
   },
   "dependencies": {
     "next": "16.0.10",

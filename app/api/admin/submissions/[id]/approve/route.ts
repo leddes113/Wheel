@@ -84,9 +84,8 @@ export async function POST(
     // Определяем финальную формулировку темы
     const finalTopicText = approvedTopicText?.trim() || submission.text;
 
-    // Устанавливаем дедлайн (14 дней)
+    // Не устанавливаем таймер сразу - он начнётся, когда пользователь увидит утверждение
     const now = new Date();
-    const deadline = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
     // Атомарно обновляем submission и пользователя
     const state = await readState();
@@ -98,12 +97,10 @@ export async function POST(
     submission.updatedAt = now.toISOString();
     state.submissions![submission.id] = submission;
 
-    // Обновляем пользователя
+    // Обновляем пользователя (НЕ устанавливаем chosenAt и deadlineAt - они установятся при первом просмотре)
     const userKey = normalizeFio(user.fio);
     state.users[userKey].topic = finalTopicText;
     state.users[userKey].originalIdea = submission.text;
-    state.users[userKey].chosenAt = now.toISOString();
-    state.users[userKey].deadlineAt = deadline.toISOString();
 
     // Сохраняем атомарно
     await writeState(state);

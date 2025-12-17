@@ -9,7 +9,7 @@ interface Topic {
   id: string;
   title: string;
   description: string;
-  acceptance_criteria: string;
+  acceptance_criteria: string[];
 }
 
 // Загрузка пула тем
@@ -100,7 +100,10 @@ export async function POST(request: NextRequest) {
     const selectedTopic = availableTopics[randomIndex];
 
     // Формируем текст темы
-    const topicText = `${selectedTopic.title}\n\n${selectedTopic.description}\n\nКритерии готовности: ${selectedTopic.acceptance_criteria}`;
+    const criteriaText = selectedTopic.acceptance_criteria
+      .map((criterion) => `  • ${criterion}`)
+      .join('\n');
+    const topicText = `${selectedTopic.title}\n\n${selectedTopic.description}\n\nКритерии готовности:\n${criteriaText}`;
 
     // Фиксируем тему и устанавливаем дедлайн (14 дней)
     const now = new Date();

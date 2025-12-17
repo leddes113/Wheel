@@ -33,8 +33,8 @@ export default function AdminPage() {
   
   // Для модерации
   const [editingSubmission, setEditingSubmission] = useState<string | null>(null);
-  const [editedTopicText, setEditedTopicText] = useState("");
-  const [rejectComment, setRejectComment] = useState("");
+  const [editedTopicText, setEditedTopicText] = useState<Record<string, string>>({});
+  const [moderatorComments, setModeratorComments] = useState<Record<string, string>>({});
 
   const handleLogin = async () => {
     if (!adminFio.trim()) {
@@ -121,7 +121,8 @@ export default function AdminPage() {
     setLoading(true);
     setError("");
 
-    const topicText = editingSubmission === submissionId ? editedTopicText : originalText;
+    const topicText = editedTopicText[submissionId]?.trim() || originalText.trim();
+    const comment = moderatorComments[submissionId]?.trim();
 
     try {
       const response = await fetch(
@@ -131,7 +132,8 @@ export default function AdminPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fio: adminFio.trim(),
-            approvedTopicText: topicText.trim(),
+            approvedTopicText: topicText,
+            adminComment: comment || undefined,
           }),
         }
       );
@@ -146,7 +148,16 @@ export default function AdminPage() {
 
       // Обновляем данные
       setEditingSubmission(null);
-      setEditedTopicText("");
+      setEditedTopicText((prev) => {
+        const newState = { ...prev };
+        delete newState[submissionId];
+        return newState;
+      });
+      setModeratorComments((prev) => {
+        const newState = { ...prev };
+        delete newState[submissionId];
+        return newState;
+      });
       await handleRefresh();
       alert("Идея успешно утверждена!");
     } catch (err) {
@@ -157,11 +168,13 @@ export default function AdminPage() {
   };
 
   const handleReject = async (submissionId: string) => {
-    const comment = prompt("Введите комментарий для отклонения идеи:");
-    if (!comment || !comment.trim()) {
-      alert("Комментарий обязателен при отклонении");
+    const comment = moderatorComments[submissionId]?.trim();
+    if (!comment) {
+      setError("Комментарий модератора обязателен при отклонении идеи");
       return;
     }
+
+    if (!confirm("Отклонить эту идею?")) return;
 
     setLoading(true);
     setError("");
@@ -174,7 +187,7 @@ export default function AdminPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fio: adminFio.trim(),
-            adminComment: comment.trim(),
+            adminComment: comment,
           }),
         }
       );
@@ -188,6 +201,16 @@ export default function AdminPage() {
       }
 
       // Обновляем данные
+      setEditedTopicText((prev) => {
+        const newState = { ...prev };
+        delete newState[submissionId];
+        return newState;
+      });
+      setModeratorComments((prev) => {
+        const newState = { ...prev };
+        delete newState[submissionId];
+        return newState;
+      });
       await handleRefresh();
       alert("Идея отклонена. Пользователь получит уведомление.");
     } catch (err) {
@@ -197,14 +220,15 @@ export default function AdminPage() {
     }
   };
 
-  const startEditing = (submissionId: string, originalText: string) => {
-    setEditingSubmission(submissionId);
-    setEditedTopicText(originalText);
-  };
-
-  const cancelEditing = () => {
-    setEditingSubmission(null);
-    setEditedTopicText("");
+  const initializeSubmissionFields = (submissionId: string, originalText: string) => {
+    setEditedTopicText((prev) => ({
+      ...prev,
+      [submissionId]: prev[submissionId] ?? originalText,
+    }));
+    setModeratorComments((prev) => ({
+      ...prev,
+      [submissionId]: prev[submissionId] ?? "",
+    }));
   };
 
   const formatDate = (isoString?: string): string => {
@@ -254,8 +278,8 @@ export default function AdminPage() {
 
           {error && <div className="error">{error}</div>}
 
-          <button onClick={handleLogin} disabled={loading}>
-            {loading ? "Проверка..." : "Войти"}
+          <button onClick={handleLogin} disabled={loading} className="btn-primary">
+            {loading ? <><div className="custom-loader"></div> Проверка...</> : "Войти"}
           </button>
         </div>
       </div>
@@ -274,8 +298,8 @@ export default function AdminPage() {
             <strong>{submissions.length}</strong>
           </p>
         </div>
-        <button onClick={handleRefresh} disabled={loading}>
-          {loading ? "Обновление..." : "Обновить"}
+        <button onClick={handleRefresh} disabled={loading} className="btn-primary">
+          {loading ? <><div className="custom-loader"></div> Обновление...</> : "Обновить"}
         </button>
       </div>
 
@@ -283,90 +307,116 @@ export default function AdminPage() {
 
       {/* Секция модерации */}
       {submissions.length > 0 && (
-        <div style={{ marginBottom: "40px" }}>
-          <h2>Модерация идей (Pending)</h2>
+        <div className="mb-xl">
+          <h2>Модерация идей</h2>
           <div className="submissions-list">
-            {submissions.map((submission) => (
-              <div key={submission.id} className="submission-card">
-                <div className="submission-header">
-                  <div>
-                    <strong>{submission.fio}</strong>
-                    <span className="submission-date">
-                      {formatDate(submission.createdAt)}
-                    </span>
+            {submissions.map((submission) => {
+              // Инициализируем поля при рендере
+              if (editedTopicText[submission.id] === undefined) {
+                initializeSubmissionFields(submission.id, submission.text);
+              }
+
+              return (
+                <div key={submission.id} className="moderation-card">
+                  {/* Заголовок карточки */}
+                  <div className="moderation-card-header">
+                    <div>
+                      <strong>{submission.fio}</strong>
+                      <span className="submission-date">
+                        {formatDate(submission.createdAt)}
+                      </span>
+                    </div>
+                    <span className="submission-status pending">На модерации</span>
                   </div>
-                  <span className="submission-status pending">Pending</span>
-                </div>
 
-                <div className="submission-text">
-                  {editingSubmission === submission.id ? (
+                  {/* Секция 1: Исходная идея */}
+                  <div className="moderation-section">
+                    <label className="moderation-label">
+                      Исходная идея пользователя
+                    </label>
+                    <div className="moderation-readonly-field">
+                      {submission.text}
+                    </div>
+                  </div>
+
+                  {/* Секция 2: Утвержденная формулировка */}
+                  <div className="moderation-section">
+                    <label className="moderation-label" htmlFor={`approved-text-${submission.id}`}>
+                      Утвержденная формулировка
+                    </label>
                     <textarea
-                      value={editedTopicText}
-                      onChange={(e) => setEditedTopicText(e.target.value)}
-                      rows={4}
-                      style={{ width: "100%", marginTop: "10px" }}
+                      id={`approved-text-${submission.id}`}
+                      className="moderation-textarea"
+                      value={editedTopicText[submission.id] || ""}
+                      onChange={(e) =>
+                        setEditedTopicText((prev) => ({
+                          ...prev,
+                          [submission.id]: e.target.value,
+                        }))
+                      }
+                      rows={3}
+                      placeholder="Отредактируйте формулировку темы при необходимости"
+                      disabled={loading}
                     />
-                  ) : (
-                    <p>{submission.text}</p>
-                  )}
-                </div>
+                    <div className="moderation-helper-text">
+                      Эта формулировка будет отправлена пользователю после утверждения
+                    </div>
+                  </div>
 
-                <div className="submission-actions">
-                  {editingSubmission === submission.id ? (
-                    <>
-                      <button
-                        className="btn-approve"
-                        onClick={() => handleApprove(submission.id, submission.text)}
-                        disabled={loading}
-                      >
-                        Утвердить с изменениями
-                      </button>
-                      <button
-                        className="btn-secondary"
-                        onClick={cancelEditing}
-                        disabled={loading}
-                      >
-                        Отменить редактирование
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        className="btn-approve"
-                        onClick={() => handleApprove(submission.id, submission.text)}
-                        disabled={loading}
-                      >
-                        Утвердить как есть
-                      </button>
-                      <button
-                        className="btn-secondary"
-                        onClick={() => startEditing(submission.id, submission.text)}
-                        disabled={loading}
-                      >
-                        Отредактировать и утвердить
-                      </button>
-                      <button
-                        className="btn-reject"
-                        onClick={() => handleReject(submission.id)}
-                        disabled={loading}
-                      >
-                        Отклонить
-                      </button>
-                    </>
-                  )}
+                  {/* Секция 3: Комментарий модератора */}
+                  <div className="moderation-section">
+                    <label className="moderation-label" htmlFor={`comment-${submission.id}`}>
+                      Комментарий модератора
+                      <span className="moderation-label-optional">(при отклонении — обязателен)</span>
+                    </label>
+                    <textarea
+                      id={`comment-${submission.id}`}
+                      className="moderation-textarea"
+                      value={moderatorComments[submission.id] || ""}
+                      onChange={(e) =>
+                        setModeratorComments((prev) => ({
+                          ...prev,
+                          [submission.id]: e.target.value,
+                        }))
+                      }
+                      rows={3}
+                      placeholder="Укажите причину отклонения или дополнительные пожелания"
+                      disabled={loading}
+                    />
+                    <div className="moderation-helper-text">
+                      Комментарий будет отправлен пользователю при отклонении идеи
+                    </div>
+                  </div>
+
+                  {/* Секция 4: Действия */}
+                  <div className="moderation-actions">
+                    <button
+                      className="btn-approve"
+                      onClick={() => handleApprove(submission.id, submission.text)}
+                      disabled={loading}
+                    >
+                      Утвердить
+                    </button>
+                    <button
+                      className="btn-reject"
+                      onClick={() => handleReject(submission.id)}
+                      disabled={loading}
+                    >
+                      Отклонить
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Таблица пользователей */}
-      <h2>Все пользователи</h2>
+      <h2>Список пользователей</h2>
       {users.length === 0 ? (
         <div className="info">
-          Пользователей пока нет. Они появятся после регистрации через главную
-          страницу.
+          Пользователей пока нет. Они появятся после регистрации через главную страницу.
         </div>
       ) : (
         <div className="table-wrapper">
