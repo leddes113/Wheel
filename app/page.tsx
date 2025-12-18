@@ -616,6 +616,17 @@ export default function Home() {
               <div className="custom-loader"></div>
               <span>Выбираем тему для вас</span>
             </div>
+          ) : spinResult.error ? (
+            // Если ошибка - показываем её и даем возможность вернуться
+            <div>
+              <div className="error">{spinResult.error}</div>
+              <button 
+                onClick={() => setScreen("random_warning")} 
+                className="btn-secondary mt-lg"
+              >
+                Вернуться назад
+              </button>
+            </div>
           ) : (
             <>
               {/* После получения результата показываем колесо с анимацией */}
