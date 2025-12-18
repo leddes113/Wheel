@@ -19,6 +19,9 @@ RUN npm ci
 # Копируем исходный код
 COPY . .
 
+# Создаём временный .env для сборки (check-env требует ADMIN_ALLOWLIST)
+RUN echo "ADMIN_ALLOWLIST=Дибров Дмитрий Алексеевич;Бобович Павел Александрович;Забудько Алексей Викторович;Рыжих Владислав Васильевич" > .env
+
 # Создаём production build
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
