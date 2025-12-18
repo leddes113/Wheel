@@ -610,21 +610,25 @@ export default function Home() {
         <h1>Выбор темы</h1>
         
         <div className="result">
-          <div className="spinning-message">
-            <div className="custom-loader"></div>
-            <span>Выбираем тему для вас</span>
-          </div>
-
-          <TopicWheel 
-            onComplete={handleWheelComplete} 
-            duration={3000}
-            finalTopic={spinResult?.user?.topic}
-          />
-
-          {!loading && spinResult?.error && (
-            <div className="info" style={{ textAlign: "center" }}>
-              Завершаем выбор...
+          {/* Показываем лоадер пока API не вернет результат */}
+          {!spinResult ? (
+            <div className="spinning-message">
+              <div className="custom-loader"></div>
+              <span>Выбираем тему для вас</span>
             </div>
+          ) : (
+            <>
+              {/* После получения результата показываем колесо с анимацией */}
+              <div className="spinning-message">
+                <span>Завершаем выбор...</span>
+              </div>
+              
+              <TopicWheel 
+                onComplete={handleWheelComplete} 
+                duration={3000}
+                finalTopic={spinResult.user?.topic}
+              />
+            </>
           )}
         </div>
       </div>
