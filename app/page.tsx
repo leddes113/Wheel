@@ -619,10 +619,6 @@ export default function Home() {
           ) : (
             <>
               {/* После получения результата показываем колесо с анимацией */}
-              <div className="spinning-message">
-                <span>Завершаем выбор...</span>
-              </div>
-              
               <TopicWheel 
                 onComplete={handleWheelComplete} 
                 duration={3000}

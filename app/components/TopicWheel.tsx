@@ -88,13 +88,15 @@ export default function TopicWheel({
       // Небольшая задержка перед показом финальной темы
       const showTimeout = setTimeout(() => {
         setShowFinalTopic(true);
+        // Вызываем onComplete после завершения анимации
+        onComplete();
       }, 100);
 
       return () => {
         clearTimeout(showTimeout);
       };
     }
-  }, [isSpinning, finalTopic]);
+  }, [isSpinning, finalTopic, onComplete]);
 
   // Извлекаем только название темы (первая строка до \n\n)
   const getTopicTitle = (topic: string) => {
@@ -138,17 +140,9 @@ export default function TopicWheel({
         ) : (
           <div className="wheel-final-result">
             {showFinalTopic && finalTopic && (
-              <>
-                <div className="wheel-final-topic">
-                  {getTopicTitle(finalTopic)}
-                </div>
-                <button 
-                  className="wheel-accept-button"
-                  onClick={onComplete}
-                >
-                  Закрепить тему
-                </button>
-              </>
+              <div className="wheel-final-topic">
+                {getTopicTitle(finalTopic)}
+              </div>
             )}
           </div>
         )}
