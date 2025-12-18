@@ -35,7 +35,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Создаём непривилегированного пользователя
 RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+    adduser --system --uid 1001 --ingroup nodejs nextjs
 
 # Копируем необходимые файлы из builder
 COPY --from=builder /app/public ./public
