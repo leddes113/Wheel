@@ -12,7 +12,8 @@ export interface UserState {
   chosenAt?: string; // ISO timestamp
   deadlineAt?: string; // ISO timestamp
   originalIdea?: string; // если пользователь вводил свою тему
-  gigachatAdvice?: string[]; // подсказки/докрученные варианты (устаревшее, для совместимости)
+  completedAt?: string; // ISO timestamp - дата завершения задания
+  gitLink?: string; // опциональная ссылка на git репозиторий
 }
 
 export interface Submission {

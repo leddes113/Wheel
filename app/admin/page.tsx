@@ -10,6 +10,8 @@ interface UserData {
   chosenAt?: string;
   deadlineAt?: string;
   daysLeft: number | null;
+  completedAt?: string;
+  gitLink?: string;
 }
 
 interface Submission {
@@ -430,6 +432,9 @@ export default function AdminPage() {
                 <th>Дата выбора</th>
                 <th>Дедлайн</th>
                 <th>Дней осталось</th>
+                <th>✓ Завершено</th>
+                <th>Дата завершения</th>
+                <th>Git ссылка</th>
               </tr>
             </thead>
             <tbody>
@@ -456,6 +461,38 @@ export default function AdminPage() {
                       >
                         {user.daysLeft}
                       </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td style={{ textAlign: 'center', fontSize: '1.5rem' }}>
+                    {user.completedAt ? (
+                      <span style={{ color: 'var(--color-secondary-accent)' }} title="Задание завершено">
+                        ✓
+                      </span>
+                    ) : user.topic ? (
+                      <span style={{ color: 'var(--color-text-muted)', fontSize: '1rem' }}>—</span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>
+                    {user.completedAt ? (
+                      formatDate(user.completedAt)
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>
+                    {user.gitLink ? (
+                      <a 
+                        href={user.gitLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ color: 'var(--color-secondary-accent)', textDecoration: 'underline' }}
+                      >
+                        Репозиторий
+                      </a>
                     ) : (
                       "—"
                     )}

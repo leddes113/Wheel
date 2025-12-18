@@ -15,6 +15,8 @@ interface UserState {
   chosenAt?: string;
   deadlineAt?: string;
   originalIdea?: string;
+  completedAt?: string;
+  gitLink?: string;
 }
 
 interface SubmissionInfo {
@@ -44,6 +46,10 @@ export default function Home() {
   // Для финального экрана
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [adminComment, setAdminComment] = useState<string | undefined>(undefined);
+  
+  // Для завершения задания
+  const [gitLink, setGitLink] = useState("");
+  const [completing, setCompleting] = useState(false);
 
   // Флаг первоначальной загрузки
   const [initializing, setInitializing] = useState(true);
@@ -332,6 +338,38 @@ export default function Home() {
     }
   };
 
+  // Завершение задания
+  const handleCompleteTask = async () => {
+    if (!user) return;
+
+    setCompleting(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fio: user.fio, gitLink: gitLink.trim() || undefined }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Ошибка завершения задания");
+        setCompleting(false);
+        return;
+      }
+
+      // Обновляем пользователя с информацией о завершении
+      setUser(data.user);
+      setGitLink(""); // очищаем поле
+    } catch (err) {
+      setError("Ошибка соединения с сервером");
+    } finally {
+      setCompleting(false);
+    }
+  };
+
   // Выход из системы
   const handleLogout = () => {
     localStorage.removeItem("vibe_wheel_fio");
@@ -342,6 +380,7 @@ export default function Home() {
     setIdeaText("");
     setDaysRemaining(null);
     setAdminComment(undefined);
+    setGitLink("");
     setError("");
     setScreen("login");
   };
@@ -821,6 +860,49 @@ export default function Home() {
               Осталось дней: <strong>{daysRemaining ?? 0}</strong>
             </p>
           </div>
+
+          {/* Блок завершения задания */}
+          {user.completedAt ? (
+            // Задание уже завершено
+            <div className="info-box" style={{ marginTop: '2rem' }}>
+              <h3 style={{ color: 'var(--color-primary-accent)', marginBottom: '1rem' }}>Задание завершено!</h3>
+              <p>
+                Дата завершения: <strong>{new Date(user.completedAt).toLocaleDateString("ru-RU")}</strong>
+              </p>
+              {user.gitLink && (
+                <p style={{ marginTop: '0.5rem' }}>
+                  Ссылка на репозиторий: <a href={user.gitLink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-secondary-accent)', textDecoration: 'underline' }}>{user.gitLink}</a>
+                </p>
+              )}
+            </div>
+          ) : (
+            // Форма для завершения задания
+            <div className="form" style={{ marginTop: '2rem', border: '1px solid rgba(255, 255, 255, 0.12)', padding: '1.5rem', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)' }}>
+              <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Завершение задания</h3>
+              <label>
+                Ссылка на Git репозиторий (опционально):
+                <input
+                  type="url"
+                  value={gitLink}
+                  onChange={(e) => setGitLink(e.target.value)}
+                  placeholder="https://github.com/username/repo"
+                  disabled={completing}
+                  style={{ fontSize: "1rem", padding: "0.875rem 1.25rem" }}
+                />
+              </label>
+
+              {error && <div className="error">{error}</div>}
+
+              <button 
+                onClick={handleCompleteTask} 
+                disabled={completing}
+                className="btn-primary"
+                style={{ marginTop: '1rem' }}
+              >
+                {completing ? <><div className="custom-loader"></div> Завершение...</> : "Я завершил задание"}
+              </button>
+            </div>
+          )}
 
           <div className="good-luck">
             <h2>Good Luck, Have Fun!</h2>
