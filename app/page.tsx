@@ -50,6 +50,7 @@ export default function Home() {
   // Для завершения задания
   const [gitLink, setGitLink] = useState("");
   const [completing, setCompleting] = useState(false);
+  const [showGitForm, setShowGitForm] = useState(false);
 
   // Флаг первоначальной загрузки
   const [initializing, setInitializing] = useState(true);
@@ -342,6 +343,12 @@ export default function Home() {
   const handleCompleteTask = async () => {
     if (!user) return;
 
+    // Проверяем что ссылка на репозиторий указана
+    if (!gitLink.trim()) {
+      setError("Укажите ссылку на Git репозиторий");
+      return;
+    }
+
     setCompleting(true);
     setError("");
 
@@ -349,7 +356,7 @@ export default function Home() {
       const response = await fetch("/api/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fio: user.fio, gitLink: gitLink.trim() || undefined }),
+        body: JSON.stringify({ fio: user.fio, gitLink: gitLink.trim() }),
       });
 
       const data = await response.json();
@@ -363,6 +370,7 @@ export default function Home() {
       // Обновляем пользователя с информацией о завершении
       setUser(data.user);
       setGitLink(""); // очищаем поле
+      setShowGitForm(false); // скрываем форму
     } catch (err) {
       setError("Ошибка соединения с сервером");
     } finally {
@@ -686,7 +694,74 @@ export default function Home() {
     return (
       <div className="container">
         <h1>Своя тема</h1>
-        <p>Опишите идею вашего проекта (минимум 20 символов)</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+          <p style={{ margin: 0 }}>Опишите идею вашего проекта</p>
+          <div className="info-icon-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
+            <span 
+              className="info-icon"
+              style={{ 
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: '2px solid var(--color-secondary-accent)',
+                color: 'var(--color-secondary-accent)',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: 'help',
+                userSelect: 'none'
+              }}
+              title="Критерии достаточного описания идей"
+            >
+              !
+            </span>
+            <div 
+              className="info-tooltip"
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginBottom: '8px',
+                padding: '1rem',
+                background: 'rgba(20, 20, 30, 0.98)',
+                border: '1px solid var(--color-secondary-accent)',
+                borderRadius: '8px',
+                minWidth: '300px',
+                maxWidth: '400px',
+                fontSize: '0.9rem',
+                lineHeight: '1.5',
+                color: 'var(--color-text-primary)',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+                opacity: 0,
+                visibility: 'hidden',
+                transition: 'opacity 0.2s, visibility 0.2s',
+                zIndex: 1000,
+                whiteSpace: 'normal'
+              }}
+            >
+              <strong style={{ color: 'var(--color-secondary-accent)', display: 'block', marginBottom: '0.5rem' }}>
+                Критерии достаточного описания идей:
+              </strong>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                <li>Приложение должно быть продуктом и нести бизнес-ценность;</li>
+                <li>Чисто технические сервисы не принимаются;</li>
+                <li>Помимо идеи приложения, опишите основной пользовательский сценарий и критерии готовности.</li>
+              </ul>
+              <p style={{ margin: '0.5rem 0 0 0', color: 'var(--color-error)', fontWeight: 'bold' }}>
+                При несоответствии указанным требованиям, идеи будут отклонены без комментариев!
+              </p>
+            </div>
+          </div>
+        </div>
+        <style jsx>{`
+          .info-icon-wrapper:hover .info-tooltip {
+            opacity: 1;
+            visibility: visible;
+          }
+        `}</style>
 
         <div className="form">
           <label>
@@ -829,10 +904,10 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Секция: Детали реализации */}
+          {/* Секция: Что должно быть реализовано */}
           {topicStructure.details && (
             <div className="topic-section">
-              <h3 className="topic-section-title">Детали реализации</h3>
+              <h3 className="topic-section-title">Что должно быть реализовано</h3>
               <div className="topic-section-content" style={{ whiteSpace: 'pre-line' }}>
                 {topicStructure.details}
               </div>
@@ -876,36 +951,76 @@ export default function Home() {
               )}
             </div>
           ) : (
-            // Форма для завершения задания
-            <div className="form" style={{ marginTop: '2rem', border: '1px solid rgba(255, 255, 255, 0.12)', padding: '1.5rem', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)' }}>
-              <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Завершение задания</h3>
-              <label>
-                Ссылка на Git репозиторий (опционально):
-                <input
-                  type="url"
-                  value={gitLink}
-                  onChange={(e) => setGitLink(e.target.value)}
-                  placeholder="https://github.com/username/repo"
-                  disabled={completing}
-                  style={{ fontSize: "1rem", padding: "0.875rem 1.25rem" }}
-                />
-              </label>
+            // Кнопка и форма для завершения задания
+            <div style={{ marginTop: '2rem' }}>
+              {!showGitForm ? (
+                // Кнопка "Я завершил задание"
+                <button 
+                  onClick={() => setShowGitForm(true)} 
+                  className="btn-primary"
+                  style={{ 
+                    background: 'linear-gradient(135deg, var(--color-primary-accent) 0%, #7c3aed 100%)',
+                    boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)'
+                  }}
+                >
+                  Я завершил задание
+                </button>
+              ) : (
+                // Форма для ввода репозитория
+                <div className="form" style={{ border: '1px solid rgba(255, 255, 255, 0.12)', padding: '1.5rem', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)' }}>
+                  <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Завершение задания</h3>
+                  <label>
+                    Ссылка на Git репозиторий <span style={{ color: 'var(--color-error)' }}>*</span>:
+                    <input
+                      type="url"
+                      value={gitLink}
+                      onChange={(e) => setGitLink(e.target.value)}
+                      placeholder="https://github.com/username/repo"
+                      disabled={completing}
+                      style={{ fontSize: "1rem", padding: "0.875rem 1.25rem" }}
+                      required
+                    />
+                  </label>
 
-              {error && <div className="error">{error}</div>}
+                  {error && <div className="error">{error}</div>}
 
-              <button 
-                onClick={handleCompleteTask} 
-                disabled={completing}
-                className="btn-primary"
-                style={{ marginTop: '1rem' }}
-              >
-                {completing ? <><div className="custom-loader"></div> Завершение...</> : "Я завершил задание"}
-              </button>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                    <button 
+                      onClick={handleCompleteTask} 
+                      disabled={completing}
+                      className="btn-primary"
+                      style={{ 
+                        flex: 1,
+                        background: 'linear-gradient(135deg, var(--color-primary-accent) 0%, #7c3aed 100%)',
+                        boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)'
+                      }}
+                    >
+                      {completing ? <><div className="custom-loader"></div> Отправка...</> : "Отправить"}
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setShowGitForm(false);
+                        setGitLink("");
+                        setError("");
+                      }} 
+                      disabled={completing}
+                      className="btn-secondary"
+                      style={{ flex: 1 }}
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          <div className="good-luck">
-            <h2>Good Luck, Have Fun!</h2>
+          <div className="good-luck" style={{ 
+            background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.1) 0%, rgba(14, 165, 233, 0.1) 100%)',
+            border: '2px solid var(--color-secondary-accent)',
+            boxShadow: '0 4px 20px rgba(34, 211, 238, 0.2)'
+          }}>
+            <h2 style={{ color: 'var(--color-secondary-accent)' }}>Good Luck, Have Fun!</h2>
           </div>
 
           <button 
