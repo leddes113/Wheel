@@ -740,10 +740,10 @@ export default function Home() {
               className="info-tooltip"
               style={{
                 position: 'absolute',
-                bottom: '100%',
+                top: '100%',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                marginBottom: '8px',
+                marginTop: '8px',
                 padding: '1rem',
                 background: 'rgba(20, 20, 30, 0.98)',
                 border: '2px solid var(--color-error)',
@@ -906,8 +906,15 @@ export default function Home() {
 
     return (
       <div className="container">
-        <h1>Тема закреплена</h1>
-        <div className="status-badge status-approved">Закреплено</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 style={{ marginBottom: '0.5rem' }}>Тема закреплена</h1>
+            <div className="status-badge status-approved">Закреплено</div>
+          </div>
+          <div style={{ fontSize: '1.1rem', color: 'var(--color-secondary-accent)', fontWeight: '500' }}>
+            Good Luck, Have Fun!
+          </div>
+        </div>
 
         <div className="result">
           {/* Дедлайн (переместили вверх) */}
@@ -1008,7 +1015,7 @@ export default function Home() {
                 <div className="form" style={{ border: '1px solid rgba(255, 255, 255, 0.12)', padding: '1.5rem', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)' }}>
                   <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Завершение задания</h3>
                   <label>
-                    Ссылка на Git репозиторий <span style={{ color: 'var(--color-error)' }}>*</span>
+                    Ссылка на Git репозиторий
                     <input
                       type="url"
                       value={gitLink}
@@ -1052,14 +1059,6 @@ export default function Home() {
               )}
             </div>
           )}
-
-          <div className="good-luck" style={{ 
-            background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.1) 0%, rgba(14, 165, 233, 0.1) 100%)',
-            border: '2px solid var(--color-secondary-accent)',
-            boxShadow: '0 4px 20px rgba(34, 211, 238, 0.2)'
-          }}>
-            <h2 style={{ color: 'var(--color-secondary-accent)' }}>Good Luck, Have Fun!</h2>
-          </div>
 
           <button 
             onClick={handleLogout} 
