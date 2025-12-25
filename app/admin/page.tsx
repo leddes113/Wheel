@@ -385,9 +385,6 @@ export default function AdminPage() {
                       placeholder="Укажите причину отклонения или дополнительные пожелания"
                       disabled={loading}
                     />
-                    <div className="moderation-helper-text">
-                      Комментарий будет отправлен пользователю при отклонении идеи
-                    </div>
                   </div>
 
                   {/* Секция 4: Действия */}

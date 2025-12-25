@@ -694,24 +694,43 @@ export default function Home() {
     return (
       <div className="container">
         <h1>Своя тема</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', position: 'relative' }}>
           <p style={{ margin: 0 }}>Опишите идею вашего проекта</p>
-          <div className="info-icon-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
+          <div 
+            className="info-icon-wrapper" 
+            style={{ position: 'relative', display: 'inline-block' }}
+            onMouseEnter={(e) => {
+              const tooltip = e.currentTarget.querySelector('.info-tooltip') as HTMLElement;
+              if (tooltip) {
+                tooltip.style.opacity = '1';
+                tooltip.style.visibility = 'visible';
+              }
+            }}
+            onMouseLeave={(e) => {
+              const tooltip = e.currentTarget.querySelector('.info-tooltip') as HTMLElement;
+              if (tooltip) {
+                tooltip.style.opacity = '0';
+                tooltip.style.visibility = 'hidden';
+              }
+            }}
+          >
             <span 
               className="info-icon"
               style={{ 
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '20px',
-                height: '20px',
+                width: '24px',
+                height: '24px',
                 borderRadius: '50%',
-                border: '2px solid var(--color-secondary-accent)',
-                color: 'var(--color-secondary-accent)',
-                fontSize: '14px',
+                border: '3px solid var(--color-error)',
+                background: 'rgba(239, 68, 68, 0.15)',
+                color: 'var(--color-error)',
+                fontSize: '16px',
                 fontWeight: 'bold',
                 cursor: 'help',
-                userSelect: 'none'
+                userSelect: 'none',
+                boxShadow: '0 0 10px rgba(239, 68, 68, 0.3)'
               }}
               title="Критерии достаточного описания идей"
             >
@@ -727,7 +746,7 @@ export default function Home() {
                 marginBottom: '8px',
                 padding: '1rem',
                 background: 'rgba(20, 20, 30, 0.98)',
-                border: '1px solid var(--color-secondary-accent)',
+                border: '2px solid var(--color-error)',
                 borderRadius: '8px',
                 minWidth: '300px',
                 maxWidth: '400px',
@@ -739,10 +758,11 @@ export default function Home() {
                 visibility: 'hidden',
                 transition: 'opacity 0.2s, visibility 0.2s',
                 zIndex: 1000,
-                whiteSpace: 'normal'
+                whiteSpace: 'normal',
+                pointerEvents: 'none'
               }}
             >
-              <strong style={{ color: 'var(--color-secondary-accent)', display: 'block', marginBottom: '0.5rem' }}>
+              <strong style={{ color: 'var(--color-error)', display: 'block', marginBottom: '0.5rem' }}>
                 Критерии достаточного описания идей:
               </strong>
               <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
@@ -756,12 +776,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <style jsx>{`
-          .info-icon-wrapper:hover .info-tooltip {
-            opacity: 1;
-            visibility: visible;
-          }
-        `}</style>
 
         <div className="form">
           <label>
@@ -896,9 +910,39 @@ export default function Home() {
         <div className="status-badge status-approved">Закреплено</div>
 
         <div className="result">
+          {/* Дедлайн (переместили вверх) */}
+          <div style={{ 
+            marginBottom: '1.5rem', 
+            padding: '1rem 1.5rem', 
+            borderRadius: '8px', 
+            background: 'rgba(34, 211, 238, 0.08)',
+            border: '1px solid rgba(34, 211, 238, 0.3)',
+            display: 'flex',
+            justifyContent: 'space-around',
+            gap: '2rem'
+          }}>
+            {user.deadlineAt && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.25rem' }}>Дедлайн</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--color-secondary-accent)' }}>
+                  {new Date(user.deadlineAt).toLocaleDateString("ru-RU")}
+                </div>
+              </div>
+            )}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.25rem' }}>Осталось дней</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--color-secondary-accent)' }}>
+                {daysRemaining ?? 0}
+              </div>
+            </div>
+          </div>
+
           {/* Секция: Ваша тема */}
-          <div className="topic-section">
-            <h3 className="topic-section-title">Ваша тема</h3>
+          <div className="topic-section" style={{ 
+            background: 'rgba(34, 211, 238, 0.05)', 
+            borderColor: 'rgba(34, 211, 238, 0.3)'
+          }}>
+            <h3 className="topic-section-title" style={{ color: 'var(--color-secondary-accent)' }}>Ваша тема</h3>
             <div className="topic-section-content">
               {topicStructure.title}
             </div>
@@ -906,8 +950,11 @@ export default function Home() {
 
           {/* Секция: Что должно быть реализовано */}
           {topicStructure.details && (
-            <div className="topic-section">
-              <h3 className="topic-section-title">Что должно быть реализовано</h3>
+            <div className="topic-section" style={{ 
+              background: 'rgba(139, 92, 246, 0.05)', 
+              borderColor: 'rgba(139, 92, 246, 0.3)'
+            }}>
+              <h3 className="topic-section-title" style={{ color: '#a78bfa' }}>Что должно быть реализовано</h3>
               <div className="topic-section-content" style={{ whiteSpace: 'pre-line' }}>
                 {topicStructure.details}
               </div>
@@ -916,25 +963,16 @@ export default function Home() {
 
           {/* Секция: Комментарий модератора (если есть) */}
           {adminComment && (
-            <div className="topic-section moderator-comment">
-              <h3 className="topic-section-title">Комментарий модератора</h3>
+            <div className="topic-section moderator-comment" style={{ 
+              background: 'rgba(251, 191, 36, 0.05)', 
+              borderColor: 'rgba(251, 191, 36, 0.3)'
+            }}>
+              <h3 className="topic-section-title" style={{ color: '#fbbf24' }}>Комментарий модератора</h3>
               <div className="topic-section-content">
                 {adminComment}
               </div>
             </div>
           )}
-
-          {/* Дедлайн и таймер */}
-          <div className="deadline">
-            {user.deadlineAt && (
-              <p>
-                Дедлайн: <strong>{new Date(user.deadlineAt).toLocaleDateString("ru-RU")}</strong>
-              </p>
-            )}
-            <p>
-              Осталось дней: <strong>{daysRemaining ?? 0}</strong>
-            </p>
-          </div>
 
           {/* Блок завершения задания */}
           {user.completedAt ? (
@@ -970,7 +1008,7 @@ export default function Home() {
                 <div className="form" style={{ border: '1px solid rgba(255, 255, 255, 0.12)', padding: '1.5rem', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)' }}>
                   <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Завершение задания</h3>
                   <label>
-                    Ссылка на Git репозиторий <span style={{ color: 'var(--color-error)' }}>*</span>:
+                    Ссылка на Git репозиторий <span style={{ color: 'var(--color-error)' }}>*</span>
                     <input
                       type="url"
                       value={gitLink}
