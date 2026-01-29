@@ -517,6 +517,17 @@ export default function AdminPage() {
 
       {/* Таблица пользователей */}
       <h2>Список пользователей</h2>
+      <div style={{ 
+        color: 'var(--color-text-secondary)', 
+        fontSize: '0.9rem', 
+        marginBottom: '10px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
+      }}>
+        <span>→</span>
+        <span>Прокрутите таблицу вправо для просмотра всех столбцов и действий</span>
+      </div>
       {users.length === 0 ? (
         <div className="info">
           Пользователей пока нет. Они появятся после регистрации через главную страницу.
