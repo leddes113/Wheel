@@ -1133,7 +1133,7 @@ button:disabled::before {
 .admin-table {
   font-family: var(--font-sans);
   width: 100%;
-  min-width: 1400px; /* Гарантируем горизонтальную прокрутку */
+  min-width: 1800px !important; /* Гарантируем горизонтальную прокрутку */
   border-collapse: collapse;
   font-size: 0.882rem;
 }

@@ -522,8 +522,8 @@ export default function AdminPage() {
           Пользователей пока нет. Они появятся после регистрации через главную страницу.
         </div>
       ) : (
-        <div className="table-wrapper">
-          <table className="admin-table">
+        <div className="table-wrapper" style={{ overflowX: 'auto', width: '100%' }}>
+          <table className="admin-table" style={{ minWidth: '1800px' }}>
             <thead>
               <tr>
                 <th>ФИО</th>
