@@ -547,8 +547,8 @@ export default function AdminPage() {
                   <td>{formatFlow(user.flow)}</td>
                   <td className="user-topic">
                     {user.topic ? (
-                      user.flow === "random" && user.topic.length > 80 ? (
-                        <span title={user.topic}>{user.topic.substring(0, 80)}...</span>
+                      user.flow === "random" ? (
+                        <span title={user.topic}>{user.topic.split('\n\n')[0]}</span>
                       ) : (
                         user.topic
                       )

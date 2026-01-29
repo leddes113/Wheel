@@ -1,5 +1,6 @@
-/* Импорт шрифта Inter из Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* Используем системный шрифт для офлайн работы */
+/* Для онлайн-версии раскомментируйте: */
+/* @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'); */
 
 /* ============================================
    Design System Variables - AI-Tech Visual (Dark Theme)
@@ -1132,6 +1133,7 @@ button:disabled::before {
 .admin-table {
   font-family: var(--font-sans);
   width: 100%;
+  min-width: 1400px; /* Гарантируем горизонтальную прокрутку */
   border-collapse: collapse;
   font-size: 0.882rem;
 }
