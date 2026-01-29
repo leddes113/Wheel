@@ -700,14 +700,12 @@ export default function AdminPage() {
           style={{
             position: 'fixed',
             bottom: 0,
-            height: '22px',
+            height: '20px',
             overflowX: 'auto',
             overflowY: 'hidden',
-            background: 'rgba(11, 28, 45, 0.98)',
-            borderTop: '3px solid var(--color-secondary-accent)',
-            boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(31, 199, 182, 0.3)',
+            background: 'transparent',
             zIndex: 1000,
-            borderRadius: '0',
+            pointerEvents: 'auto',
           }}
           className="sticky-scrollbar"
         >
