@@ -55,7 +55,7 @@ echo ✓ Built
 
 echo.
 echo [8/9] Starting application...
-ssh -i %SSH_KEY% %SERVER_USER%@%SERVER_IP% "docker run -d --name vibe-wheel-app --restart always -p 127.0.0.1:%APP_PORT%:3000 -e NODE_ENV=production -e ADMIN_ALLOWLIST='Дибров Дмитрий Алексеевич;Бобович Павел Александрович;Забудько Алексей Викторович;Рыжих Владислав Васильевич' -v %PROJECT_DIR%/data:/app/data:rw -v %PROJECT_DIR%/logs:/app/logs:rw vibe-wheel:latest"
+ssh -i %SSH_KEY% %SERVER_USER%@%SERVER_IP% "docker run -d --name vibe-wheel-app --restart always -p 127.0.0.1:%APP_PORT%:3000 --env-file %PROJECT_DIR%/.env -v %PROJECT_DIR%/data:/app/data:rw -v %PROJECT_DIR%/logs:/app/logs:rw vibe-wheel:latest"
 echo ✓ Started
 
 echo.
