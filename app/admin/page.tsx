@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import * as XLSX from "xlsx";
 
 interface UserData {
   fio: string;
@@ -114,6 +115,99 @@ export default function AdminPage() {
       setError("Ошибка соединения с сервером");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userFio: string) => {
+    if (!confirm(`Вы уверены, что хотите удалить пользователя ${userFio}?\n\nЭто действие необратимо.`)) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `/api/admin/users?adminFio=${encodeURIComponent(adminFio.trim())}&userFio=${encodeURIComponent(userFio)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Ошибка удаления пользователя");
+        setLoading(false);
+        return;
+      }
+
+      await handleRefresh();
+      const message = data.topicFreed
+        ? `Пользователь ${userFio} удален. Его тема освобождена и доступна для других пользователей.`
+        : `Пользователь ${userFio} удален.`;
+      alert(message);
+    } catch (err) {
+      setError("Ошибка соединения с сервером");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportToExcel = () => {
+    if (users.length === 0) {
+      alert("Нет данных для экспорта");
+      return;
+    }
+
+    try {
+      // Подготовка данных для экспорта
+      const exportData = users.map((user) => ({
+        "ФИО": user.fio,
+        "Уровень": formatLevel(user.level),
+        "Сценарий": formatFlow(user.flow),
+        "Тема": user.topic || "—",
+        "Дата выбора": formatDate(user.chosenAt),
+        "Дедлайн": formatDate(user.deadlineAt),
+        "Дней осталось": user.daysLeft !== null ? user.daysLeft : "—",
+        "Завершено": user.completedAt ? "Да" : "—",
+        "Дата завершения": formatDate(user.completedAt),
+        "Git ссылка": user.gitLink || "—",
+      }));
+
+      // Создание рабочей книги
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Пользователи");
+
+      // Установка ширины колонок
+      const columnWidths = [
+        { wch: 30 }, // ФИО
+        { wch: 12 }, // Уровень
+        { wch: 12 }, // Сценарий
+        { wch: 60 }, // Тема
+        { wch: 18 }, // Дата выбора
+        { wch: 18 }, // Дедлайн
+        { wch: 15 }, // Дней осталось
+        { wch: 12 }, // Завершено
+        { wch: 18 }, // Дата завершения
+        { wch: 40 }, // Git ссылка
+      ];
+      worksheet["!cols"] = columnWidths;
+
+      // Генерация имени файла с датой
+      const date = new Date();
+      const dateString = date.toISOString().split("T")[0];
+      const timeString = date.toTimeString().split(" ")[0].replace(/:/g, "-");
+      const filename = `users_export_${dateString}_${timeString}.xlsx`;
+
+      // Сохранение файла
+      XLSX.writeFile(workbook, filename);
+
+      alert(`Данные успешно экспортированы в файл ${filename}`);
+    } catch (err) {
+      console.error("Error exporting to Excel:", err);
+      setError("Ошибка экспорта данных");
     }
   };
 
@@ -300,9 +394,19 @@ export default function AdminPage() {
             <strong>{submissions.length}</strong>
           </p>
         </div>
-        <button onClick={handleRefresh} disabled={loading} className="btn-primary">
-          {loading ? <><div className="custom-loader"></div> Обновление...</> : "Обновить"}
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={handleExportToExcel} 
+            disabled={loading || users.length === 0} 
+            className="btn-primary"
+            style={{ background: 'var(--color-secondary-accent)' }}
+          >
+            Экспорт в Excel
+          </button>
+          <button onClick={handleRefresh} disabled={loading} className="btn-primary">
+            {loading ? <><div className="custom-loader"></div> Обновление...</> : "Обновить"}
+          </button>
+        </div>
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -432,6 +536,7 @@ export default function AdminPage() {
                 <th>✓ Завершено</th>
                 <th>Дата завершения</th>
                 <th>Git ссылка</th>
+                <th>Действия</th>
               </tr>
             </thead>
             <tbody>
@@ -441,7 +546,15 @@ export default function AdminPage() {
                   <td>{formatLevel(user.level)}</td>
                   <td>{formatFlow(user.flow)}</td>
                   <td className="user-topic">
-                    {user.topic || <span className="muted">Не выбрана</span>}
+                    {user.topic ? (
+                      user.flow === "random" && user.topic.length > 80 ? (
+                        <span title={user.topic}>{user.topic.substring(0, 80)}...</span>
+                      ) : (
+                        user.topic
+                      )
+                    ) : (
+                      <span className="muted">Не выбрана</span>
+                    )}
                   </td>
                   <td>{formatDate(user.chosenAt)}</td>
                   <td>{formatDate(user.deadlineAt)}</td>
@@ -493,6 +606,17 @@ export default function AdminPage() {
                     ) : (
                       "—"
                     )}
+                  </td>
+                  <td>
+                    <button
+                      onClick={() => handleDeleteUser(user.fio)}
+                      disabled={loading}
+                      className="btn-reject"
+                      style={{ fontSize: '0.85rem', padding: '0.3rem 0.6rem' }}
+                      title="Удалить пользователя"
+                    >
+                      Удалить
+                    </button>
                   </td>
                 </tr>
               ))}

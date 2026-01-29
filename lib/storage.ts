@@ -77,6 +77,41 @@ export async function getAllUsers(): Promise<UserState[]> {
   return Object.values(state.users);
 }
 
+// Удалить пользователя и освободить его тему (если случайная)
+export async function deleteUser(fio: string): Promise<{ deletedUser: UserState; topicFreed: boolean }> {
+  const state = await readState();
+  const key = normalizeFio(fio);
+  const user = state.users[key];
+  
+  if (!user) {
+    throw new Error("Пользователь не найден");
+  }
+  
+  let topicFreed = false;
+  
+  // Если пользователь взял случайную тему, освобождаем её
+  if (user.flow === "random" && user.topic) {
+    const level = user.level === "experienced" ? "hard" : "easy";
+    const usedTopics = state.usedTopics?.[level] || [];
+    
+    // Удаляем тему из списка использованных
+    const topicIndex = usedTopics.indexOf(user.topic);
+    if (topicIndex > -1) {
+      usedTopics.splice(topicIndex, 1);
+      if (state.usedTopics) {
+        state.usedTopics[level] = usedTopics;
+      }
+      topicFreed = true;
+    }
+  }
+  
+  // Удаляем пользователя
+  delete state.users[key];
+  await writeState(state);
+  
+  return { deletedUser: user, topicFreed };
+}
+
 // ==================== SUBMISSIONS ====================
 
 // Создать новый submission
