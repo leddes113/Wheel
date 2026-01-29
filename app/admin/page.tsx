@@ -522,8 +522,25 @@ export default function AdminPage() {
           Пользователей пока нет. Они появятся после регистрации через главную страницу.
         </div>
       ) : (
-        <div className="table-wrapper">
-          <table className="admin-table">
+        <>
+          <div style={{
+            background: 'var(--color-info-light)',
+            border: '1px solid var(--color-secondary-accent)',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            fontSize: '0.95rem',
+            color: 'var(--color-text-primary)'
+          }}>
+            <span style={{ fontSize: '1.5rem' }}>→</span>
+            <span>Прокрутите таблицу <strong>вправо</strong> для просмотра всех столбцов и кнопки удаления</span>
+            <span style={{ fontSize: '1.5rem' }}>→</span>
+          </div>
+          <div className="table-wrapper">
+            <table className="admin-table">
             <thead>
               <tr>
                 <th>ФИО</th>
@@ -623,6 +640,7 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

@@ -1135,28 +1135,33 @@ button:disabled::before {
   scrollbar-color: var(--color-secondary-accent) rgba(255, 255, 255, 0.1);
 }
 
-/* Стили для Webkit браузеров (Chrome, Safari, Edge) - яркий видимый скроллбар */
+/* Стили для Webkit браузеров (Chrome, Safari, Edge) - ОГРОМНЫЙ видимый скроллбар */
 .table-wrapper::-webkit-scrollbar {
-  height: 14px;
+  height: 18px; /* Увеличен размер */
 }
 
 .table-wrapper::-webkit-scrollbar-track {
   background: rgba(11, 28, 45, 0.95);
   border-radius: 0;
-  border-top: 2px solid var(--color-secondary-accent);
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+  border-top: 3px solid var(--color-secondary-accent);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .table-wrapper::-webkit-scrollbar-thumb {
-  background: var(--color-secondary-accent);
-  border-radius: 4px;
-  border: 2px solid rgba(11, 28, 45, 0.9);
-  box-shadow: 0 0 10px rgba(31, 199, 182, 0.6);
+  background: linear-gradient(180deg, var(--color-secondary-soft) 0%, var(--color-secondary-accent) 100%);
+  border-radius: 6px;
+  border: 3px solid rgba(11, 28, 45, 0.9);
+  box-shadow: 
+    0 0 15px rgba(31, 199, 182, 0.8),
+    0 0 30px rgba(31, 199, 182, 0.4);
+  cursor: pointer;
 }
 
 .table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: var(--color-secondary-soft);
-  box-shadow: 0 0 15px rgba(111, 227, 214, 0.8);
+  background: linear-gradient(180deg, var(--color-secondary-soft) 0%, var(--color-secondary-accent) 50%, var(--color-secondary-soft) 100%);
+  box-shadow: 
+    0 0 20px rgba(111, 227, 214, 1),
+    0 0 40px rgba(111, 227, 214, 0.6);
 }
 
 .admin-table {
