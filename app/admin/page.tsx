@@ -49,33 +49,44 @@ export default function AdminPage() {
     const tableWrapper = tableWrapperRef.current;
     const stickyScroll = stickyScrollRef.current;
 
-    if (!tableWrapper || !stickyScroll) return;
+    if (!tableWrapper || !stickyScroll || users.length === 0) return;
+
+    // Функция для обновления позиции и размера sticky скроллбара
+    const updateStickyScrollbar = () => {
+      const rect = tableWrapper.getBoundingClientRect();
+      const table = tableWrapper.querySelector('table');
+      
+      if (table) {
+        // Устанавливаем позицию и ширину sticky скроллбара
+        stickyScroll.style.left = `${rect.left}px`;
+        stickyScroll.style.width = `${rect.width}px`;
+        
+        // Устанавливаем ширину контента
+        const scrollContent = stickyScroll.querySelector('.scroll-content') as HTMLElement;
+        if (scrollContent) {
+          scrollContent.style.width = `${table.scrollWidth}px`;
+        }
+      }
+    };
 
     const handleTableScroll = () => {
-      if (stickyScroll) {
-        stickyScroll.scrollLeft = tableWrapper.scrollLeft;
-      }
+      stickyScroll.scrollLeft = tableWrapper.scrollLeft;
     };
 
     const handleStickyScroll = () => {
-      if (tableWrapper) {
-        tableWrapper.scrollLeft = stickyScroll.scrollLeft;
-      }
+      tableWrapper.scrollLeft = stickyScroll.scrollLeft;
     };
 
+    // Начальная установка
+    updateStickyScrollbar();
+
+    // Обновляем при изменении размера окна
+    window.addEventListener('resize', updateStickyScrollbar);
     tableWrapper.addEventListener('scroll', handleTableScroll);
     stickyScroll.addEventListener('scroll', handleStickyScroll);
 
-    // Устанавливаем ширину контента для sticky скроллбара
-    const table = tableWrapper.querySelector('table');
-    if (table) {
-      const scrollContent = stickyScroll.querySelector('.scroll-content');
-      if (scrollContent) {
-        (scrollContent as HTMLElement).style.width = `${table.scrollWidth}px`;
-      }
-    }
-
     return () => {
+      window.removeEventListener('resize', updateStickyScrollbar);
       tableWrapper.removeEventListener('scroll', handleTableScroll);
       stickyScroll.removeEventListener('scroll', handleStickyScroll);
     };
@@ -689,19 +700,18 @@ export default function AdminPage() {
           style={{
             position: 'fixed',
             bottom: 0,
-            left: 0,
-            right: 0,
-            height: '20px',
+            height: '22px',
             overflowX: 'auto',
             overflowY: 'hidden',
-            background: 'rgba(11, 28, 45, 0.95)',
+            background: 'rgba(11, 28, 45, 0.98)',
             borderTop: '3px solid var(--color-secondary-accent)',
-            boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.5)',
+            boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(31, 199, 182, 0.3)',
             zIndex: 1000,
+            borderRadius: '0',
           }}
           className="sticky-scrollbar"
         >
-          <div className="scroll-content" style={{ height: '1px' }}></div>
+          <div className="scroll-content" style={{ height: '1px', pointerEvents: 'none' }}></div>
         </div>
         </>
       )}
