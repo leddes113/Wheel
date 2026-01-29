@@ -40,8 +40,8 @@ echo ✓ Container stopped
 
 echo.
 echo [5/9] Обновление кода из репозитория...
-ssh -i %SSH_KEY% %SERVER_USER%@%SERVER_IP% "cd %PROJECT_DIR% && git fetch origin && git reset --hard origin/main"
-echo ✓ Code updated
+ssh -i %SSH_KEY% %SERVER_USER%@%SERVER_IP% "cd %PROJECT_DIR% && git fetch origin && git checkout origin/main -- . ':!data/state.json'"
+echo ✓ Code updated (state.json preserved)
 
 echo.
 echo [6/9] Восстановление данных пользователей...
