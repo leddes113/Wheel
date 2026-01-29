@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import * as React from "react";
 import * as XLSX from "xlsx";
 
 interface UserData {
@@ -38,6 +39,47 @@ export default function AdminPage() {
   const [editingSubmission, setEditingSubmission] = useState<string | null>(null);
   const [editedTopicText, setEditedTopicText] = useState<Record<string, string>>({});
   const [moderatorComments, setModeratorComments] = useState<Record<string, string>>({});
+
+  // Ref для синхронизации sticky скроллбара
+  const tableWrapperRef = React.useRef<HTMLDivElement>(null);
+  const stickyScrollRef = React.useRef<HTMLDivElement>(null);
+
+  // Синхронизация sticky скроллбара с таблицей
+  useEffect(() => {
+    const tableWrapper = tableWrapperRef.current;
+    const stickyScroll = stickyScrollRef.current;
+
+    if (!tableWrapper || !stickyScroll) return;
+
+    const handleTableScroll = () => {
+      if (stickyScroll) {
+        stickyScroll.scrollLeft = tableWrapper.scrollLeft;
+      }
+    };
+
+    const handleStickyScroll = () => {
+      if (tableWrapper) {
+        tableWrapper.scrollLeft = stickyScroll.scrollLeft;
+      }
+    };
+
+    tableWrapper.addEventListener('scroll', handleTableScroll);
+    stickyScroll.addEventListener('scroll', handleStickyScroll);
+
+    // Устанавливаем ширину контента для sticky скроллбара
+    const table = tableWrapper.querySelector('table');
+    if (table) {
+      const scrollContent = stickyScroll.querySelector('.scroll-content');
+      if (scrollContent) {
+        (scrollContent as HTMLElement).style.width = `${table.scrollWidth}px`;
+      }
+    }
+
+    return () => {
+      tableWrapper.removeEventListener('scroll', handleTableScroll);
+      stickyScroll.removeEventListener('scroll', handleStickyScroll);
+    };
+  }, [users]);
 
   const handleLogin = async () => {
     if (!adminFio.trim()) {
@@ -539,7 +581,7 @@ export default function AdminPage() {
             <span>Прокрутите таблицу <strong>вправо</strong> для просмотра всех столбцов и кнопки удаления</span>
             <span style={{ fontSize: '1.5rem' }}>→</span>
           </div>
-          <div className="table-wrapper">
+          <div className="table-wrapper" ref={tableWrapperRef}>
             <table className="admin-table">
             <thead>
               <tr>
@@ -639,6 +681,27 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+        </div>
+        
+        {/* Sticky скроллбар внизу экрана */}
+        <div 
+          ref={stickyScrollRef}
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '20px',
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            background: 'rgba(11, 28, 45, 0.95)',
+            borderTop: '3px solid var(--color-secondary-accent)',
+            boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+          }}
+          className="sticky-scrollbar"
+        >
+          <div className="scroll-content" style={{ height: '1px' }}></div>
         </div>
         </>
       )}
