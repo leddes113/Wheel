@@ -30,12 +30,15 @@ export async function GET() {
       );
     }
 
+    const themeSelectionEnabled = process.env.THEME_SELECTION_ENABLED !== 'false';
+    
     return NextResponse.json(
       {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         version: process.env.npm_package_version || '0.1.0',
+        themeSelectionEnabled,
       },
       { status: 200 }
     );
@@ -50,3 +53,9 @@ export async function GET() {
     );
   }
 }
+
+
+
+
+
+

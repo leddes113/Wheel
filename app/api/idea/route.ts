@@ -32,6 +32,17 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+    
+    // Проверка feature toggle
+    const themeSelectionEnabled = process.env.THEME_SELECTION_ENABLED !== 'false';
+    
+    // Если выбор тем отключен и у пользователя ещё нет темы
+    if (!themeSelectionEnabled && !user.topic) {
+      return NextResponse.json(
+        { error: "Выбор темы больше недоступен" },
+        { status: 403 }
+      );
+    }
 
     // Проверяем, что пользователь ещё не выбрал тему (assignment)
     if (user.topic) {

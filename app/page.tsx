@@ -54,10 +54,27 @@ export default function Home() {
 
   // Флаг первоначальной загрузки
   const [initializing, setInitializing] = useState(true);
+  
+  // Feature toggle для выбора темы
+  const [themeSelectionEnabled, setThemeSelectionEnabled] = useState(true);
 
   // Для анимации колеса (Iteration B)
   const [spinResult, setSpinResult] = useState<{ user: UserState; error?: string } | null>(null);
   const [isWheelComplete, setIsWheelComplete] = useState(false);
+
+  // Проверка feature toggle при загрузке
+  useEffect(() => {
+    const checkFeatureToggle = async () => {
+      try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        setThemeSelectionEnabled(data.themeSelectionEnabled !== false);
+      } catch (err) {
+        console.error('Failed to check feature toggle:', err);
+      }
+    };
+    checkFeatureToggle();
+  }, []);
 
   // Восстановление состояния пользователя при загрузке страницы
   useEffect(() => {
@@ -545,6 +562,37 @@ export default function Home() {
 
   // Экран: Выбор сценария
   if (screen === "choose_flow") {
+    // Если выбор тем отключен
+    if (!themeSelectionEnabled) {
+      return (
+        <div className="container">
+          <h1>Выбор темы недоступен</h1>
+          <p>Привет, <strong>{user?.fio}</strong>!</p>
+
+          <div className="result">
+            <div className="info-box" style={{ 
+              background: 'rgba(251, 191, 36, 0.1)', 
+              border: '2px solid rgba(251, 191, 36, 0.5)',
+              padding: '2rem'
+            }}>
+              <h3 style={{ color: '#fbbf24', marginBottom: '1rem' }}>Регистрация новых участников завершена</h3>
+              <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
+                К сожалению, выбор темы больше недоступен. 
+                Регистрация новых участников на текущий период закрыта.
+              </p>
+            </div>
+
+            <button 
+              onClick={handleLogout}
+              className="btn-secondary mt-xl"
+            >
+              Выйти
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="container">
         <h1>Выберите сценарий</h1>

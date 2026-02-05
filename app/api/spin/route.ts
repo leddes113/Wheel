@@ -22,6 +22,9 @@ async function loadTopics(level: string): Promise<Topic[]> {
 
 export async function POST(request: NextRequest) {
   try {
+    // Проверка feature toggle
+    const themeSelectionEnabled = process.env.THEME_SELECTION_ENABLED !== 'false';
+    
     const body = await request.json();
     const { fio } = body;
 
@@ -40,6 +43,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Пользователь не найден. Сначала выполните /api/login" },
         { status: 404 }
+      );
+    }
+    
+    // Если выбор тем отключен и у пользователя ещё нет темы
+    if (!themeSelectionEnabled && !user.topic) {
+      return NextResponse.json(
+        { error: "Выбор темы больше недоступен" },
+        { status: 403 }
       );
     }
 
