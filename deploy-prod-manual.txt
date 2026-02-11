@@ -1,0 +1,109 @@
+=== ИНСТРУКЦИЯ ПО ДЕПЛОЮ НА ПРОД (РУЧНАЯ) ===
+
+1. Подключитесь к серверу через ваш SSH клиент:
+   ssh user1@vibe-wheel.ru
+
+2. Перейдите в папку проекта:
+   cd /home/user1/vibe-wheel
+
+3. Создайте бэкап данных:
+   sudo cp data/state.json data/state.json.backup-$(date +%Y%m%d-%H%M%S)
+
+4. Обновите код из репозитория (БЕЗ перезаписи state.json):
+   git fetch origin
+   git checkout origin/main -- . ':!data/state.json'
+
+5. Проверьте, что изменения применились:
+   git log -1 --oneline
+
+6. Установите зависимости (если нужно):
+   npm install
+
+7. Пересоберите Docker образ:
+   sudo docker build --no-cache -t vibe-wheel:latest .
+
+8. Остановите старый контейнер:
+   sudo docker stop vibe-wheel || true
+   sudo docker rm vibe-wheel || true
+
+9. Исправьте права на data директорию:
+   sudo chown -R 1001:1001 data/
+
+10. Запустите новый контейнер:
+    sudo docker run -d \
+      --name vibe-wheel \
+      --restart unless-stopped \
+      -p 3000:3000 \
+      -v /home/user1/vibe-wheel/data:/app/data \
+      --env-file /home/user1/vibe-wheel/.env \
+      vibe-wheel:latest
+
+11. Проверьте, что контейнер запустился:
+    sudo docker ps | grep vibe-wheel
+    sudo docker logs vibe-wheel
+
+12. Проверьте здоровье приложения:
+    curl http://localhost:3000/api/health
+
+13. ВАЖНО! Загрузите Excel файл с сотрудниками в data/ и конвертируйте его:
+    # На проде должен быть файл с сотрудниками в data/
+    # Создайте скрипт конвертации (если Excel уже на сервере):
+    
+    cat > /home/user1/vibe-wheel/convert-employees-prod.js << 'EOF'
+const XLSX = require('xlsx');
+const fs = require('fs').promises;
+const path = require('path');
+
+async function convert() {
+  const files = require('fs').readdirSync('/home/user1/vibe-wheel/data');
+  const excelFile = files.find(f => f.endsWith('.xlsx') && f.includes('Управление'));
+  
+  if (!excelFile) {
+    console.log('Excel файл не найден');
+    return;
+  }
+  
+  const workbook = XLSX.readFile(path.join('/home/user1/vibe-wheel/data', excelFile));
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const data = XLSX.utils.sheet_to_json(sheet);
+  
+  const firstRow = data[0];
+  const fioColumn = Object.keys(firstRow).find(key => 
+    key.toLowerCase().includes('фио') || key === '__EMPTY'
+  ) || Object.keys(firstRow)[0];
+  
+  const employees = data
+    .map(row => row[fioColumn])
+    .filter(fio => fio && typeof fio === 'string' && fio.trim().length > 0)
+    .map(fio => fio.trim());
+  
+  const output = {
+    totalEmployees: employees.length,
+    updatedAt: new Date().toISOString(),
+    employees: employees
+  };
+  
+  await fs.writeFile(
+    '/home/user1/vibe-wheel/data/employees.json',
+    JSON.stringify(output, null, 2),
+    'utf-8'
+  );
+  
+  console.log(`✅ Создан employees.json с ${employees.length} сотрудниками`);
+}
+
+convert().catch(console.error);
+EOF
+
+    # Запустите конвертацию:
+    node convert-employees-prod.js
+    
+    # Проверьте результат:
+    cat data/employees.json | head -20
+
+14. Откройте браузер и проверьте:
+    https://vibe-wheel.ru/admin
+    
+    Нажмите "Статистика" и проверьте, что всё работает!
+
+=== ЗАВЕРШЕНО ===
