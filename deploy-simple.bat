@@ -48,8 +48,13 @@ ssh -i %SSH_KEY% %SERVER_USER%@%SERVER_IP% "sudo chown -R 1001:1001 %PROJECT_DIR
 echo ✓ Permissions fixed
 
 echo.
-echo [6/8] Creating .env file...
-ssh -i %SSH_KEY% %SERVER_USER%@%SERVER_IP% "echo NODE_ENV=production > %PROJECT_DIR%/.env && echo PORT=%APP_PORT% >> %PROJECT_DIR%/.env && echo ADMIN_ALLOWLIST=Дибров Дмитрий Алексеевич;Бобович Павел Александрович;Забудько Алексей Викторович;Рыжих Владислав Васильевич >> %PROJECT_DIR%/.env && echo NEXT_TELEMETRY_DISABLED=1 >> %PROJECT_DIR%/.env"
+echo [6/8] Creating and uploading .env file...
+echo NODE_ENV=production > .env.production
+echo PORT=%APP_PORT% >> .env.production
+echo ADMIN_ALLOWLIST=Дибров Дмитрий Алексеевич;Бобович Павел Александрович;Забудько Алексей Викторович;Рыжих Владислав Васильевич >> .env.production
+echo NEXT_TELEMETRY_DISABLED=1 >> .env.production
+scp -i %SSH_KEY% .env.production %SERVER_USER%@%SERVER_IP%:%PROJECT_DIR%/.env
+del .env.production
 echo ✓ Environment configured
 
 echo.
@@ -59,8 +64,8 @@ echo ✓ Built
 
 echo.
 echo [8/8] Starting application...
-ssh -i %SSH_KEY% %SERVER_USER%@%SERVER_IP% "docker run -d --name vibe-wheel-app --restart always -p %APP_PORT%:3000 -e NODE_ENV=production -e ADMIN_ALLOWLIST='Дибров Дмитрий Алексеевич;Бобович Павел Александрович;Забудько Алексей Викторович;Рыжих Владислав Васильевич' -v %PROJECT_DIR%/data:/app/data:rw -v %PROJECT_DIR%/logs:/app/logs:rw vibe-wheel:latest"
-echo ✓ Started
+ssh -i %SSH_KEY% %SERVER_USER%@%SERVER_IP% "docker run -d --name vibe-wheel-app --restart always -p 127.0.0.1:%APP_PORT%:3000 -e NODE_ENV=production -e ADMIN_ALLOWLIST='Дибров Дмитрий Алексеевич;Бобович Павел Александрович;Забудько Алексей Викторович;Рыжих Владислав Васильевич' -v %PROJECT_DIR%/data:/app/data:rw -v %PROJECT_DIR%/logs:/app/logs:rw vibe-wheel:latest"
+echo ✓ Started (localhost only)
 
 echo.
 echo Waiting for app to start...
@@ -82,3 +87,4 @@ echo.
 echo Check logs: ssh -i %SSH_KEY% %SERVER_USER%@%SERVER_IP% "docker logs -f vibe-wheel-app"
 echo.
 pause
+

@@ -34,3 +34,9 @@ try {
     Write-Host "✗ Application is unreachable: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
+
+
+
+
+
+

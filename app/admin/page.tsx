@@ -34,6 +34,9 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [totalEmployees, setTotalEmployees] = useState<number>(0);
+  const [allEmployees, setAllEmployees] = useState<string[]>([]);
   
   // Для модерации
   const [editingSubmission, setEditingSubmission] = useState<string | null>(null);
@@ -121,8 +124,9 @@ export default function AdminPage() {
       setUsers(data.users || []);
       setAuthenticated(true);
       
-      // Загружаем submissions
+      // Загружаем submissions и список всех сотрудников
       await loadSubmissions();
+      await loadEmployees();
     } catch (err) {
       setError("Ошибка соединения с сервером");
     } finally {
@@ -145,6 +149,19 @@ export default function AdminPage() {
     }
   };
 
+  const loadEmployees = async () => {
+    try {
+      const response = await fetch('/api/admin/employees');
+      if (response.ok) {
+        const data = await response.json();
+        setTotalEmployees(data.totalEmployees || 0);
+        setAllEmployees(data.employees || []);
+      }
+    } catch (err) {
+      console.error("Error loading employees:", err);
+    }
+  };
+
   const handleRefresh = async () => {
     if (!authenticated) return;
 
@@ -162,8 +179,9 @@ export default function AdminPage() {
         setUsers(usersData.users || []);
       }
 
-      // Загружаем submissions
+      // Загружаем submissions и список всех сотрудников
       await loadSubmissions();
+      await loadEmployees();
     } catch (err) {
       setError("Ошибка соединения с сервером");
     } finally {
@@ -401,6 +419,156 @@ export default function AdminPage() {
     return flow === "random" ? "Случайная" : "Своя";
   };
 
+  // Расчёт статистики
+  const calculateStats = () => {
+    if (users.length === 0) return null;
+
+    // Функция извлечения фамилии из ФИО
+    const extractLastName = (fio: string) => {
+      const normalized = fio.trim().toLowerCase();
+      const parts = normalized.split(/\s+/);
+      return parts[0] || ''; // Первое слово = фамилия
+    };
+
+    // Фамилии зарегистрированных пользователей
+    const registeredLastNames = users.map(u => extractLastName(u.fio));
+
+    // Метрики на основе полного списка сотрудников
+    const registeredCount = users.length;
+    const registeredPercent = totalEmployees > 0 
+      ? ((registeredCount / totalEmployees) * 100).toFixed(1)
+      : "0";
+
+    // Пользователи, выбравшие тему
+    const usersWithTopic = users.filter(u => u.topic);
+    const chosenTopicCount = usersWithTopic.length;
+    const chosenTopicPercent = totalEmployees > 0
+      ? ((chosenTopicCount / totalEmployees) * 100).toFixed(1)
+      : "0";
+
+    // Сотрудники, не приступившие к заданию (не зарегистрированные) - сравниваем по фамилиям
+    const notStartedEmployees = allEmployees.filter(
+      emp => !registeredLastNames.includes(extractLastName(emp))
+    );
+
+    // Зарегистрировались, но не выбрали тему
+    const registeredNoTopicEmployees = users.filter(u => !u.topic).map(u => u.fio);
+
+    // 1. Процентное соотношение experienced/beginner
+    const experiencedCount = users.filter(u => u.level === "experienced").length;
+    const beginnerCount = users.filter(u => u.level === "beginner").length;
+    const experiencedPercent = users.length > 0
+      ? ((experiencedCount / users.length) * 100).toFixed(1)
+      : "0";
+    const beginnerPercent = users.length > 0
+      ? ((beginnerCount / users.length) * 100).toFixed(1)
+      : "0";
+
+    // 2. Сколько beginners дошли до работающего решения (завершили задание)
+    const beginnersCompleted = users.filter(u => 
+      u.level === "beginner" && u.completedAt
+    ).length;
+
+    // 3. Число пользователей, завершивших задание в срок
+    const completedOnTime = users.filter(u => {
+      if (!u.completedAt || !u.deadlineAt) return false;
+      return new Date(u.completedAt) <= new Date(u.deadlineAt);
+    }).length;
+
+    // 4. Число пользователей, не завершивших задания в срок (дедлайн прошёл, но не завершили)
+    const now = new Date();
+    const overdueNotCompleted = users.filter(u => {
+      if (!u.deadlineAt || u.completedAt) return false;
+      return new Date(u.deadlineAt) < now;
+    }).length;
+
+    // 5. Число пользователей со своими темами/случайными темами
+    const ownTopicCount = users.filter(u => u.flow === "own").length;
+    const randomTopicCount = users.filter(u => u.flow === "random").length;
+
+    // 6. Среднее время выполнения для завершивших задание
+    const completedUsers = users.filter(u => u.completedAt && u.chosenAt);
+    const completionTimes = completedUsers.map(u => {
+      const start = new Date(u.chosenAt!).getTime();
+      const end = new Date(u.completedAt!).getTime();
+      return (end - start) / (1000 * 60 * 60 * 24); // в днях
+    });
+    const avgCompletionDays = completionTimes.length > 0
+      ? (completionTimes.reduce((a, b) => a + b, 0) / completionTimes.length).toFixed(1)
+      : "—";
+
+    // 7. Число пользователей с готовыми проектами (<1 дня)
+    const fastCompletions = completionTimes.filter(days => days < 1).length;
+
+    // 8. Распределение по дням выполнения
+    const completionDistribution: Record<number, number> = {};
+    completionTimes.forEach(days => {
+      const dayBucket = Math.floor(days);
+      completionDistribution[dayBucket] = (completionDistribution[dayBucket] || 0) + 1;
+    });
+
+    // 9. Список двоечников
+    const failedEmployees: Array<{fio: string, reason: string}> = [];
+    
+    // Не зарегистрировались вообще
+    notStartedEmployees.forEach(fio => {
+      failedEmployees.push({ fio, reason: 'не зарегистрировался' });
+    });
+    
+    // Зарегистрировались, но не выбрали тему
+    registeredNoTopicEmployees.forEach(fio => {
+      failedEmployees.push({ fio, reason: 'не выбрал тему' });
+    });
+    
+    // Не завершили за 2 недели (14 дней) или не завершили вообще
+    users.forEach(user => {
+      if (user.chosenAt) {
+        const daysPassed = (now.getTime() - new Date(user.chosenAt).getTime()) / (1000 * 60 * 60 * 24);
+        
+        if (!user.completedAt && daysPassed > 14) {
+          // Не завершили вообще, прошло больше 14 дней
+          failedEmployees.push({ fio: user.fio, reason: 'не завершил за 2 недели' });
+        } else if (user.completedAt) {
+          const completionDays = (new Date(user.completedAt).getTime() - new Date(user.chosenAt).getTime()) / (1000 * 60 * 60 * 24);
+          if (completionDays > 14) {
+            // Завершил, но позже чем за 14 дней
+            failedEmployees.push({ fio: user.fio, reason: `завершил за ${Math.floor(completionDays)} дней` });
+          }
+        }
+      }
+    });
+
+    return {
+      // Общие метрики по управлению
+      totalEmployees,
+      registeredCount,
+      registeredPercent,
+      chosenTopicCount,
+      chosenTopicPercent,
+      notStartedEmployees,
+      registeredNoTopicEmployees,
+      
+      // Метрики по пользователям
+      totalUsers: users.length,
+      experiencedCount,
+      beginnerCount,
+      experiencedPercent,
+      beginnerPercent,
+      beginnersCompleted,
+      completedOnTime,
+      overdueNotCompleted,
+      ownTopicCount,
+      randomTopicCount,
+      avgCompletionDays,
+      fastCompletions,
+      totalCompleted: completedUsers.length,
+      completionDistribution,
+      failedEmployees,
+    };
+  };
+
+  const stats = calculateStats();
+
   // Экран авторизации
   if (!authenticated) {
     return (
@@ -449,6 +617,13 @@ export default function AdminPage() {
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button 
+            onClick={() => setShowStats(!showStats)} 
+            className="btn-primary"
+            style={{ background: showStats ? '#7c3aed' : 'var(--color-primary-accent)' }}
+          >
+            {showStats ? "← Назад к списку" : "Статистика"}
+          </button>
+          <button 
             onClick={handleExportToExcel} 
             disabled={loading || users.length === 0} 
             className="btn-primary"
@@ -465,7 +640,7 @@ export default function AdminPage() {
       {error && <div className="error">{error}</div>}
 
       {/* Секция модерации */}
-      {submissions.length > 0 && (
+      {!showStats && submissions.length > 0 && (
         <div className="mb-xl">
           <h2>Модерация идей</h2>
           <div className="submissions-list">
@@ -568,13 +743,208 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* Статистика */}
+      {showStats && stats && (
+        <div className="mb-xl">
+          <h2>Статистика активности</h2>
+
+          {/* Общие метрики по управлению */}
+          {totalEmployees > 0 && (
+            <>
+              <div className="stats-section-header">
+                <span className="stats-section-icon">📊</span>
+                <h3>Общая вовлеченность управления</h3>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginBottom: '2rem' }}>
+                {/* Всего сотрудников */}
+                <div className="stat-card">
+                  <h3>👥 Всего сотрудников</h3>
+                  <div className="stat-value">{stats.totalEmployees}</div>
+                  <div className="stat-label">в управлении</div>
+                </div>
+
+                {/* Зарегистрировались */}
+                <div className="stat-card">
+                  <h3>✅ Зарегистрировались</h3>
+                  <div className="stat-value">{stats.registeredCount}</div>
+                  <div className="stat-label">{stats.registeredPercent}% от управления</div>
+                  <div className="stat-details">
+                    Не зарегались: {stats.notStartedEmployees.length} чел.
+                  </div>
+                </div>
+
+                {/* Выполнили задание */}
+                <div className="stat-card">
+                  <h3>🎯 Выполнили задание</h3>
+                  <div className="stat-value">{stats.totalCompleted}</div>
+                  <div className="stat-label">пользователей</div>
+                  <div className="stat-details">
+                    {totalEmployees > 0 
+                      ? `${((stats.totalCompleted / totalEmployees) * 100).toFixed(1)}% от управления`
+                      : '—'}
+                  </div>
+                </div>
+              </div>
+
+              {/* КЛЮЧЕВАЯ МЕТРИКА - после метрик управления */}
+              <div style={{ marginTop: '2rem', marginBottom: '2rem' }}>
+                <div className="stat-card stat-card-key" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                  <h3>🚀 Новички создали своё приложение</h3>
+                  <div className="stat-value">{stats.beginnersCompleted}</div>
+                  <div className="stat-label">из {stats.beginnerCount} без опыта в разработке</div>
+                  <div className="stat-details">
+                    {stats.beginnerCount > 0 
+                      ? `🎯 ${((stats.beginnersCompleted / stats.beginnerCount) * 100).toFixed(1)}% успеха среди новичков`
+                      : '—'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Список двоечников */}
+              {stats.failedEmployees.length > 0 && (
+                <details className="stats-expandable">
+                  <summary>
+                    <span>📋</span>
+                    <span>Список двоечников ({stats.failedEmployees.length} чел.)</span>
+                  </summary>
+                  <ul>
+                    {stats.failedEmployees.map((item, idx) => (
+                      <li key={idx}>
+                        <strong>{item.fio}</strong>
+                        <span style={{ 
+                          marginLeft: '12px', 
+                          color: 'var(--color-text-tertiary)', 
+                          fontSize: '0.9rem',
+                          fontStyle: 'italic'
+                        }}>
+                          — {item.reason}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </>
+          )}
+
+          <div className="stats-section-header">
+            <span className="stats-section-icon">📈</span>
+            <h3>Детальная статистика участников</h3>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+            {/* Соотношение опыта */}
+            <div className="stat-card">
+              <h3>💼 Опыт в разработке</h3>
+              <div className="stat-value">{stats.experiencedCount} / {stats.beginnerCount}</div>
+              <div className="stat-label">Имеют опыт / Не имеют опыт</div>
+              <div className="stat-details">
+                {stats.experiencedPercent}% с опытом | {stats.beginnerPercent}% без опыта
+              </div>
+            </div>
+
+
+            {/* Завершили в срок */}
+            <div className="stat-card">
+              <h3>✔️ Завершили в срок</h3>
+              <div className="stat-value">{stats.completedOnTime}</div>
+              <div className="stat-label">пользователей</div>
+              <div className="stat-details">
+                📊 Всего завершено: {stats.totalCompleted}
+              </div>
+            </div>
+
+            {/* Просрочили */}
+            <div className="stat-card">
+              <h3>⏰ Не завершили в срок</h3>
+              <div className="stat-value">{stats.overdueNotCompleted}</div>
+              <div className="stat-label">пользователей просрочили</div>
+              <div className="stat-details">
+                Дедлайн прошёл, но не завершено
+              </div>
+            </div>
+
+            {/* Свои/Случайные темы */}
+            <div className="stat-card">
+              <h3>🎲 Выбор темы</h3>
+              <div className="stat-value">{stats.ownTopicCount} / {stats.randomTopicCount}</div>
+              <div className="stat-label">Своя тема / Случайная</div>
+              <div className="stat-details">
+                Всего выбрали: {stats.ownTopicCount + stats.randomTopicCount}
+              </div>
+            </div>
+
+            {/* Среднее время выполнения */}
+            <div className="stat-card">
+              <h3>⏱️ Среднее время</h3>
+              <div className="stat-value">{stats.avgCompletionDays}</div>
+              <div className="stat-label">дней на выполнение</div>
+              <div className="stat-details">
+                Для {stats.totalCompleted} завершивших
+              </div>
+            </div>
+
+            {/* Практиковали vibecoding до старта */}
+            <div className="stat-card">
+              <h3>⚡ Vibecoding до активности</h3>
+              <div className="stat-value">{stats.fastCompletions}</div>
+              <div className="stat-label">пользователей</div>
+              <div className="stat-details">
+                Практиковали vibecoding ещё до старта активности
+              </div>
+            </div>
+          </div>
+
+          {/* График распределения по дням */}
+          {stats.totalCompleted > 0 && (
+            <>
+              <div className="stats-section-header">
+                <span className="stats-section-icon">📊</span>
+                <h3>Распределение по времени выполнения</h3>
+              </div>
+              <div className="completion-chart">
+                <div className="chart-container">
+                  {Object.keys(stats.completionDistribution)
+                    .sort((a, b) => Number(a) - Number(b))
+                    .map(day => {
+                      const dayNum = Number(day);
+                      const count = stats.completionDistribution[dayNum];
+                      const maxCount = Math.max(...Object.values(stats.completionDistribution));
+                      const heightPercent = (count / maxCount) * 100;
+                      
+                      return (
+                        <div key={day} className="chart-bar-wrapper">
+                          <div className="chart-bar-container">
+                            <div 
+                              className="chart-bar" 
+                              style={{ height: `${heightPercent}%` }}
+                              title={`${count} чел. за ${dayNum} дней`}
+                            >
+                              <span className="chart-bar-value">{count}</span>
+                            </div>
+                          </div>
+                          <div className="chart-bar-label">
+                            {dayNum === 0 ? '<1' : dayNum} {dayNum === 1 ? 'день' : dayNum < 5 ? 'дня' : 'дней'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+                <div className="chart-footer">
+                  <p>Количество пользователей по количеству дней на завершение задания</p>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Таблица пользователей */}
-      <h2>Список пользователей</h2>
-      {users.length === 0 ? (
+      {!showStats && <h2>Список пользователей</h2>}
+      {!showStats && users.length === 0 ? (
         <div className="info">
           Пользователей пока нет. Они появятся после регистрации через главную страницу.
         </div>
-      ) : (
+      ) : !showStats ? (
         <>
           <div className="table-wrapper" ref={tableWrapperRef}>
             <table className="admin-table">
@@ -696,7 +1066,7 @@ export default function AdminPage() {
           <div className="scroll-content" style={{ height: '1px', pointerEvents: 'none' }}></div>
         </div>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

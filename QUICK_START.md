@@ -228,3 +228,9 @@ sudo chown -R 1001:1001 data/
 4. **Добавьте темы** - отредактируйте `data/topics_easy.json` и `data/topics_hard.json`
 
 **Удачи! 🚀**
+
+
+
+
+
+

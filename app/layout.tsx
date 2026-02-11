@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin", "cyrillic"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Vibe Coding Wheel",
@@ -19,8 +12,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className={inter.className}>
-      <body className={`${inter.className} ${inter.variable} antialiased`}>
+    <html lang="ru">
+      <body className="antialiased">
         {/* Снежинки */}
         <div className="snowflakes" aria-hidden="true">
           {Array.from({ length: 50 }).map((_, i) => (

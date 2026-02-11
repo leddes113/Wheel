@@ -31,3 +31,9 @@ else
     echo "✗ Application is unhealthy (HTTP ${response})"
     exit 1
 fi
+
+
+
+
+
+
