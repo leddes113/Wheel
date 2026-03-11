@@ -42,6 +42,8 @@ yarn-error.log*
 next-env.d.ts
 
 # personal data
+/data/state.json
+/data/state.json.*
 /data/employees.json
 /data/*.xlsx
 /data/*.xls
