@@ -108,16 +108,17 @@ export default function AdminPage() {
 
     try {
       // Сначала узнаём текущую волну из employees endpoint
+      let cw = 1;
       const empResponse = await fetch('/api/admin/employees');
       if (empResponse.ok) {
         const empData = await empResponse.json();
-        const cw = empData.currentWave || 1;
+        cw = empData.currentWave || 1;
         setCurrentWave(cw);
         setSelectedWave(cw);
       }
 
       const response = await fetch(
-        `/api/admin/users?fio=${encodeURIComponent(adminFio.trim())}`
+        `/api/admin/users?fio=${encodeURIComponent(adminFio.trim())}&wave=${cw}`
       );
 
       const data = await response.json();
@@ -135,9 +136,9 @@ export default function AdminPage() {
       setUsers(data.users || []);
       setAuthenticated(true);
       
-      // Загружаем submissions и список всех сотрудников
-      await loadSubmissions();
-      await loadEmployees();
+      // Передаём wave напрямую, т.к. setState ещё не применился
+      await loadSubmissions(cw);
+      await loadEmployees(cw);
     } catch (err) {
       setError("Ошибка соединения с сервером");
     } finally {
