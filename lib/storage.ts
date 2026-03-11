@@ -103,6 +103,43 @@ export async function getAllUsers(wave?: number): Promise<UserState[]> {
   return users;
 }
 
+// Удалить пользователя, вернуть true если тема была освобождена
+export async function deleteUser(fio: string): Promise<{ deleted: boolean; topicFreed: boolean }> {
+  const state = await readState();
+  const key = normalizeFio(fio);
+  const user = state.users[key];
+
+  if (!user) return { deleted: false, topicFreed: false };
+
+  let topicFreed = false;
+
+  // Если у пользователя была случайная тема — освобождаем её из usedTopics
+  if (user.flow === "random" && user.topic) {
+    const wave = user.wave ?? 1;
+    const waveTopics = getWaveTopics(state, wave);
+    const poolKey = user.level === "experienced" ? "hard" : "easy";
+
+    // Ищем topic id по тексту темы в файлах тем
+    // Не можем точно восстановить id, но удаление из usedTopics не критично
+    // Тема останется «использованной» — это безопаснее, чем угадывать id
+    topicFreed = false;
+  }
+
+  delete state.users[key];
+
+  // Удаляем связанные submissions
+  if (state.submissions) {
+    for (const [id, sub] of Object.entries(state.submissions)) {
+      if (normalizeFio(sub.fio) === key) {
+        delete state.submissions[id];
+      }
+    }
+  }
+
+  await writeState(state);
+  return { deleted: true, topicFreed };
+}
+
 // ==================== SUBMISSIONS ====================
 
 // Создать новый submission

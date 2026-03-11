@@ -1,7 +1,7 @@
 // GET /api/admin/users - список пользователей (только для админов)
 
 import { NextRequest, NextResponse } from "next/server";
-import { getAllUsers, normalizeFio } from "@/lib/storage";
+import { getAllUsers, deleteUser, normalizeFio } from "@/lib/storage";
 
 // Проверка, является ли пользователь админом
 function isAdmin(fio: string): boolean {
@@ -19,6 +19,56 @@ function isAdmin(fio: string): boolean {
   const normalizedFio = normalizeFio(fio);
 
   return adminList.includes(normalizedFio);
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const adminFio = searchParams.get("adminFio");
+    const userFio = searchParams.get("userFio");
+
+    if (!adminFio || adminFio.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Параметр adminFio обязателен" },
+        { status: 400 }
+      );
+    }
+
+    if (!isAdmin(adminFio)) {
+      return NextResponse.json(
+        { error: "Доступ запрещен. У вас нет прав администратора." },
+        { status: 403 }
+      );
+    }
+
+    if (!userFio || userFio.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Параметр userFio обязателен" },
+        { status: 400 }
+      );
+    }
+
+    const result = await deleteUser(userFio);
+
+    if (!result.deleted) {
+      return NextResponse.json(
+        { error: "Пользователь не найден" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Пользователь ${userFio} удален`,
+      topicFreed: result.topicFreed,
+    });
+  } catch (error) {
+    console.error("Error in DELETE /api/admin/users:", error);
+    return NextResponse.json(
+      { error: "Внутренняя ошибка сервера" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function GET(request: NextRequest) {
