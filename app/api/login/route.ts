@@ -1,7 +1,7 @@
 // POST /api/login - вход по ФИО + уровень
 
 import { NextRequest, NextResponse } from "next/server";
-import { getUser, saveUser } from "@/lib/storage";
+import { getUser, saveUser, readState, getCurrentWave } from "@/lib/storage";
 import { UserLevel, UserState } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
@@ -35,10 +35,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Создаём нового пользователя
+    // Создаём нового пользователя в текущей волне
+    const state = await readState();
+    const wave = getCurrentWave(state);
     const newUser: UserState = {
       fio: fio.trim(),
       level: level as UserLevel,
+      wave,
     };
 
     await saveUser(newUser);

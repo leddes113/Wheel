@@ -42,8 +42,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Получаем всех пользователей
-    const users = await getAllUsers();
+    // Получаем пользователей (с опциональным фильтром по волне)
+    const waveParam = searchParams.get("wave");
+    const wave = waveParam ? parseInt(waveParam, 10) : undefined;
+    const users = await getAllUsers(wave);
 
     // Добавляем вычисляемое поле daysLeft для каждого пользователя
     const usersWithDaysLeft = users.map(user => {

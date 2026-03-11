@@ -43,9 +43,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Получаем submissions с опциональным фильтром по статусу
+    // Получаем submissions с опциональными фильтрами по статусу и волне
+    const waveParam = searchParams.get("wave");
+    const wave = waveParam ? parseInt(waveParam, 10) : undefined;
     const submissions = await getAllSubmissions(
-      statusFilter || undefined
+      statusFilter || undefined,
+      wave
     );
 
     // Сортируем по дате создания (сначала новые)

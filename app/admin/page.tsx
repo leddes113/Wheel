@@ -37,6 +37,8 @@ export default function AdminPage() {
   const [showStats, setShowStats] = useState(false);
   const [totalEmployees, setTotalEmployees] = useState<number>(0);
   const [allEmployees, setAllEmployees] = useState<string[]>([]);
+  const [currentWave, setCurrentWave] = useState<number>(1);
+  const [selectedWave, setSelectedWave] = useState<number>(1);
   
   // Для модерации
   const [editingSubmission, setEditingSubmission] = useState<string | null>(null);
@@ -105,6 +107,15 @@ export default function AdminPage() {
     setError("");
 
     try {
+      // Сначала узнаём текущую волну из employees endpoint
+      const empResponse = await fetch('/api/admin/employees');
+      if (empResponse.ok) {
+        const empData = await empResponse.json();
+        const cw = empData.currentWave || 1;
+        setCurrentWave(cw);
+        setSelectedWave(cw);
+      }
+
       const response = await fetch(
         `/api/admin/users?fio=${encodeURIComponent(adminFio.trim())}`
       );
@@ -134,10 +145,11 @@ export default function AdminPage() {
     }
   };
 
-  const loadSubmissions = async () => {
+  const loadSubmissions = async (wave?: number) => {
     try {
+      const w = wave ?? selectedWave;
       const response = await fetch(
-        `/api/admin/submissions?fio=${encodeURIComponent(adminFio.trim())}&status=pending`
+        `/api/admin/submissions?fio=${encodeURIComponent(adminFio.trim())}&status=pending&wave=${w}`
       );
 
       if (response.ok) {
@@ -149,9 +161,10 @@ export default function AdminPage() {
     }
   };
 
-  const loadEmployees = async () => {
+  const loadEmployees = async (wave?: number) => {
     try {
-      const response = await fetch('/api/admin/employees');
+      const w = wave ?? selectedWave;
+      const response = await fetch(`/api/admin/employees?wave=${w}`);
       if (response.ok) {
         const data = await response.json();
         setTotalEmployees(data.totalEmployees || 0);
@@ -162,16 +175,16 @@ export default function AdminPage() {
     }
   };
 
-  const handleRefresh = async () => {
+  const handleRefresh = async (wave?: number) => {
     if (!authenticated) return;
 
     setLoading(true);
     setError("");
 
     try {
-      // Загружаем пользователей
+      const w = wave ?? selectedWave;
       const usersResponse = await fetch(
-        `/api/admin/users?fio=${encodeURIComponent(adminFio.trim())}`
+        `/api/admin/users?fio=${encodeURIComponent(adminFio.trim())}&wave=${w}`
       );
 
       if (usersResponse.ok) {
@@ -179,9 +192,8 @@ export default function AdminPage() {
         setUsers(usersData.users || []);
       }
 
-      // Загружаем submissions и список всех сотрудников
-      await loadSubmissions();
-      await loadEmployees();
+      await loadSubmissions(w);
+      await loadEmployees(w);
     } catch (err) {
       setError("Ошибка соединения с сервером");
     } finally {
@@ -500,9 +512,9 @@ export default function AdminPage() {
     // 7. Число пользователей с готовыми проектами (<1 дня)
     const fastCompletions = completionTimes.filter(days => days < 1).length;
 
-    // 8. Распределение по дням выполнения
+    // 8. Распределение по дням выполнения (исключаем < 1 дня)
     const completionDistribution: Record<number, number> = {};
-    completionTimes.forEach(days => {
+    completionTimes.filter(days => days >= 1).forEach(days => {
       const dayBucket = Math.floor(days);
       completionDistribution[dayBucket] = (completionDistribution[dayBucket] || 0) + 1;
     });
@@ -612,8 +624,28 @@ export default function AdminPage() {
           <p className="admin-info">
             Администратор: <strong>{adminFio}</strong> | Пользователей:{" "}
             <strong>{users.length}</strong> | На модерации:{" "}
-            <strong>{submissions.length}</strong>
+            <strong>{submissions.length}</strong> | Волна:{" "}
+            <strong>{selectedWave}</strong>{selectedWave === currentWave ? " (текущая)" : " (архив)"}
           </p>
+          {currentWave > 1 && (
+            <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+              {Array.from({ length: currentWave }, (_, i) => i + 1).map(w => (
+                <button
+                  key={w}
+                  onClick={() => { setSelectedWave(w); handleRefresh(w); }}
+                  className="btn-primary"
+                  style={{
+                    padding: '4px 14px',
+                    fontSize: '0.85rem',
+                    background: w === selectedWave ? '#7c3aed' : 'rgba(255,255,255,0.1)',
+                    border: w === selectedWave ? 'none' : '1px solid rgba(255,255,255,0.2)',
+                  }}
+                >
+                  Волна {w}{w === currentWave ? ' ●' : ''}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button 
@@ -631,7 +663,7 @@ export default function AdminPage() {
           >
             Экспорт в Excel
           </button>
-          <button onClick={handleRefresh} disabled={loading} className="btn-primary">
+          <button onClick={() => handleRefresh()} disabled={loading} className="btn-primary">
             {loading ? <><div className="custom-loader"></div> Обновление...</> : "Обновить"}
           </button>
         </div>
@@ -786,9 +818,9 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* КЛЮЧЕВАЯ МЕТРИКА - после метрик управления */}
-              <div style={{ marginTop: '2rem', marginBottom: '2rem' }}>
-                <div className="stat-card stat-card-key" style={{ maxWidth: '600px', margin: '0 auto' }}>
+              {/* КЛЮЧЕВЫЕ МЕТРИКИ - после метрик управления */}
+              <div style={{ marginTop: '2rem', marginBottom: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+                <div className="stat-card stat-card-key">
                   <h3>🚀 Новички создали своё приложение</h3>
                   <div className="stat-value">{stats.beginnersCompleted}</div>
                   <div className="stat-label">из {stats.beginnerCount} без опыта в разработке</div>
@@ -798,32 +830,19 @@ export default function AdminPage() {
                       : '—'}
                   </div>
                 </div>
-              </div>
 
-              {/* Список двоечников */}
-              {stats.failedEmployees.length > 0 && (
-                <details className="stats-expandable">
-                  <summary>
-                    <span>📋</span>
-                    <span>Список двоечников ({stats.failedEmployees.length} чел.)</span>
-                  </summary>
-                  <ul>
-                    {stats.failedEmployees.map((item, idx) => (
-                      <li key={idx}>
-                        <strong>{item.fio}</strong>
-                        <span style={{ 
-                          marginLeft: '12px', 
-                          color: 'var(--color-text-tertiary)', 
-                          fontSize: '0.9rem',
-                          fontStyle: 'italic'
-                        }}>
-                          — {item.reason}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
+                {/* Двоечники */}
+                {stats.failedEmployees.length > 0 && (
+                  <div className="stat-card stat-card-warning">
+                    <h3>⚠️ Не выполнили</h3>
+                    <div className="stat-value">{stats.failedEmployees.length}</div>
+                    <div className="stat-label">сотрудников</div>
+                    <div className="stat-details">
+                      Не зарегистрировались / не выбрали тему / не выполнили за 2 недели
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           )}
 

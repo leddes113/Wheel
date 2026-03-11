@@ -1,7 +1,7 @@
 // POST /api/spin - случайная тема из предзаготовленного пула (без LLM)
 
 import { NextRequest, NextResponse } from "next/server";
-import { getUser, readState, writeState, normalizeFio } from "@/lib/storage";
+import { getUser, readState, writeState, normalizeFio, getCurrentWave, getWaveTopics } from "@/lib/storage";
 import fs from "fs/promises";
 import path from "path";
 
@@ -77,18 +77,15 @@ export async function POST(request: NextRequest) {
 
     // Читаем состояние атомарно
     const state = await readState();
-
-    // Инициализируем usedTopics если не существует
-    if (!state.usedTopics) {
-      state.usedTopics = { easy: [], hard: [] };
-    }
+    const wave = getCurrentWave(state);
+    const waveTopics = getWaveTopics(state, wave);
 
     // Загружаем пул тем
     const allTopics = await loadTopics(user.level);
     
     // Определяем используемый пул
     const poolKey = user.level === "experienced" ? "hard" : "easy";
-    const usedTopicIds = state.usedTopics[poolKey] || [];
+    const usedTopicIds = waveTopics[poolKey] || [];
 
     // Находим неиспользованные темы
     const availableTopics = allTopics.filter(
@@ -127,8 +124,8 @@ export async function POST(request: NextRequest) {
     state.users[userKey].chosenAt = now.toISOString();
     state.users[userKey].deadlineAt = deadline.toISOString();
 
-    // Помечаем тему как использованную
-    state.usedTopics[poolKey].push(selectedTopic.id);
+    // Помечаем тему как использованную в текущей волне
+    waveTopics[poolKey].push(selectedTopic.id);
 
     // Атомарно сохраняем состояние
     await writeState(state);

@@ -1923,25 +1923,31 @@ button .custom-loader::after {
 
 /* Ключевая метрика - с сиянием */
 .stat-card-key {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(20, 184, 166, 0.15));
-  border: 3px solid var(--color-primary-accent);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(20, 184, 166, 0.25));
+  border: 3px solid rgba(139, 92, 246, 0.8);
   box-shadow: 
-    0 0 30px rgba(139, 92, 246, 0.4),
-    0 0 60px rgba(139, 92, 246, 0.2),
+    0 0 35px rgba(139, 92, 246, 0.5),
+    0 0 70px rgba(139, 92, 246, 0.3),
     0 8px 32px rgba(0, 0, 0, 0.3);
   animation: key-metric-glow 3s ease-in-out infinite;
   position: relative;
 }
 
 .stat-card-key::before {
-  height: 5px;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
   background: linear-gradient(90deg, 
-    var(--color-primary-accent), 
-    var(--color-secondary-accent),
-    var(--color-primary-accent)
+    rgba(139, 92, 246, 0.15), 
+    rgba(20, 184, 166, 0.15),
+    rgba(139, 92, 246, 0.15)
   );
   background-size: 200% 100%;
   animation: gradient-shift 3s ease infinite;
+  opacity: 0.5;
 }
 
 
@@ -1961,15 +1967,15 @@ button .custom-loader::after {
 @keyframes key-metric-glow {
   0%, 100% {
     box-shadow: 
-      0 0 30px rgba(139, 92, 246, 0.4),
-      0 0 60px rgba(139, 92, 246, 0.2),
+      0 0 35px rgba(139, 92, 246, 0.5),
+      0 0 70px rgba(139, 92, 246, 0.3),
       0 8px 32px rgba(0, 0, 0, 0.3);
   }
   50% {
     box-shadow: 
-      0 0 40px rgba(139, 92, 246, 0.6),
-      0 0 80px rgba(139, 92, 246, 0.3),
-      0 0 120px rgba(139, 92, 246, 0.1),
+      0 0 45px rgba(139, 92, 246, 0.7),
+      0 0 90px rgba(139, 92, 246, 0.4),
+      0 0 130px rgba(139, 92, 246, 0.15),
       0 8px 32px rgba(0, 0, 0, 0.3);
   }
 }
@@ -1983,6 +1989,69 @@ button .custom-loader::after {
   }
   100% {
     background-position: 0% 50%;
+  }
+}
+
+/* Карточка предупреждения - красная с сиянием */
+.stat-card-warning {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.2), rgba(185, 28, 28, 0.2));
+  border: 3px solid rgba(239, 68, 68, 0.75);
+  box-shadow: 
+    0 0 30px rgba(239, 68, 68, 0.4),
+    0 0 60px rgba(239, 68, 68, 0.25),
+    0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: warning-glow 3s ease-in-out infinite;
+  position: relative;
+}
+
+.stat-card-warning::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    rgba(239, 68, 68, 0.2), 
+    rgba(220, 38, 38, 0.2),
+    rgba(239, 68, 68, 0.2)
+  );
+  background-size: 200% 100%;
+  animation: gradient-shift 3s ease infinite;
+  opacity: 0.4;
+}
+
+.stat-card-warning:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 
+    0 0 35px rgba(239, 68, 68, 0.4),
+    0 0 70px rgba(239, 68, 68, 0.2),
+    0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.stat-card-warning .stat-value {
+  font-size: 4rem;
+  font-weight: 900;
+  color: rgba(248, 113, 113, 0.95);
+}
+
+.stat-card-warning h3 {
+  color: rgba(252, 165, 165, 0.9);
+}
+
+@keyframes warning-glow {
+  0%, 100% {
+    box-shadow: 
+      0 0 30px rgba(239, 68, 68, 0.4),
+      0 0 60px rgba(239, 68, 68, 0.25),
+      0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow: 
+      0 0 40px rgba(239, 68, 68, 0.55),
+      0 0 80px rgba(239, 68, 68, 0.35),
+      0 0 120px rgba(239, 68, 68, 0.15),
+      0 8px 32px rgba(0, 0, 0, 0.3);
   }
 }
 

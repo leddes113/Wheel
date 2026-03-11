@@ -1,7 +1,7 @@
 // POST /api/idea - своя тема через модерацию админом
 
 import { NextRequest, NextResponse } from "next/server";
-import { getUser, saveUser, createSubmission, getSubmissionByFio } from "@/lib/storage";
+import { getUser, saveUser, createSubmission, getSubmissionByFio, readState, getCurrentWave } from "@/lib/storage";
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,8 +91,10 @@ export async function POST(request: NextRequest) {
     // Если был rejected submission, разрешаем отправить новый
     // (flow уже установлен в "own", так что random заблокирован)
 
-    // Создаём submission со статусом pending
-    const submission = await createSubmission(fio, idea.trim());
+    // Создаём submission со статусом pending в текущей волне
+    const state = await readState();
+    const wave = getCurrentWave(state);
+    const submission = await createSubmission(fio, idea.trim(), wave);
 
     // Устанавливаем flow="own" чтобы заблокировать random
     // НЕ устанавливаем topic - он будет установлен только после approve

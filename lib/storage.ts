@@ -2,7 +2,7 @@
 
 import fs from "fs/promises";
 import path from "path";
-import { AppState, UserState, Submission } from "./types";
+import { AppState, UserState, Submission, WaveTopics } from "./types";
 import { randomUUID } from "crypto";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -19,7 +19,7 @@ async function ensureStorageExists(): Promise<void> {
   try {
     await fs.access(STATE_FILE);
   } catch {
-    const initialState: AppState = { users: {}, submissions: {}, usedTopics: { easy: [], hard: [] } };
+    const initialState: AppState = { currentWave: 1, users: {}, submissions: {}, usedTopics: {}, waveEmployees: {} };
     await fs.writeFile(STATE_FILE, JSON.stringify(initialState, null, 2), "utf-8");
   }
 }
@@ -30,11 +30,33 @@ export async function readState(): Promise<AppState> {
   const data = await fs.readFile(STATE_FILE, "utf-8");
   const state = JSON.parse(data) as AppState;
   
-  // Инициализируем отсутствующие поля для обратной совместимости
   if (!state.submissions) state.submissions = {};
-  if (!state.usedTopics) state.usedTopics = { easy: [], hard: [] };
+  if (!state.currentWave) state.currentWave = 1;
+  if (!state.waveEmployees) state.waveEmployees = {};
+
+  // Миграция usedTopics из старого формата { easy, hard } в новый { "1": { easy, hard } }
+  if (!state.usedTopics) {
+    state.usedTopics = {};
+  } else if ('easy' in state.usedTopics || 'hard' in state.usedTopics) {
+    const legacy = state.usedTopics as unknown as { easy?: string[]; hard?: string[] };
+    state.usedTopics = {
+      "1": { easy: legacy.easy || [], hard: legacy.hard || [] }
+    };
+  }
   
   return state;
+}
+
+export function getCurrentWave(state: AppState): number {
+  return state.currentWave || 1;
+}
+
+export function getWaveTopics(state: AppState, wave?: number): WaveTopics {
+  const w = wave ?? getCurrentWave(state);
+  const key = String(w);
+  if (!state.usedTopics) state.usedTopics = {};
+  if (!state.usedTopics[key]) state.usedTopics[key] = { easy: [], hard: [] };
+  return state.usedTopics[key];
 }
 
 // Атомарная запись состояния
@@ -71,10 +93,14 @@ export async function saveUser(user: UserState): Promise<void> {
   await writeState(state);
 }
 
-// Получить всех пользователей (для админки)
-export async function getAllUsers(): Promise<UserState[]> {
+// Получить всех пользователей (для админки), с опциональным фильтром по волне
+export async function getAllUsers(wave?: number): Promise<UserState[]> {
   const state = await readState();
-  return Object.values(state.users);
+  const users = Object.values(state.users);
+  if (wave !== undefined) {
+    return users.filter(u => (u.wave ?? 1) === wave);
+  }
+  return users;
 }
 
 // ==================== SUBMISSIONS ====================
@@ -82,7 +108,8 @@ export async function getAllUsers(): Promise<UserState[]> {
 // Создать новый submission
 export async function createSubmission(
   fio: string,
-  text: string
+  text: string,
+  wave?: number
 ): Promise<Submission> {
   const state = await readState();
   
@@ -92,6 +119,7 @@ export async function createSubmission(
     fio,
     text,
     status: "pending",
+    wave: wave ?? getCurrentWave(state),
     createdAt: now,
     updatedAt: now,
   };
@@ -108,18 +136,18 @@ export async function getSubmission(id: string): Promise<Submission | null> {
   return state.submissions?.[id] || null;
 }
 
-// Получить submission по FIO (последний)
+// Получить submission по FIO (последний в текущей волне)
 export async function getSubmissionByFio(fio: string): Promise<Submission | null> {
   const state = await readState();
   const normalizedFio = normalizeFio(fio);
+  const wave = getCurrentWave(state);
   
   const submissions = Object.values(state.submissions || {}).filter(
-    (sub) => normalizeFio(sub.fio) === normalizedFio
+    (sub) => normalizeFio(sub.fio) === normalizedFio && (sub.wave ?? 1) === wave
   );
   
   if (submissions.length === 0) return null;
   
-  // Возвращаем последний submission (по дате создания)
   submissions.sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
@@ -127,16 +155,23 @@ export async function getSubmissionByFio(fio: string): Promise<Submission | null
   return submissions[0];
 }
 
-// Получить все submissions с фильтром по статусу
+// Получить все submissions с фильтрами по статусу и волне
 export async function getAllSubmissions(
-  statusFilter?: "pending" | "approved" | "rejected"
+  statusFilter?: "pending" | "approved" | "rejected",
+  wave?: number
 ): Promise<Submission[]> {
   const state = await readState();
-  const submissions = Object.values(state.submissions || {});
+  let submissions = Object.values(state.submissions || {});
   
-  if (!statusFilter) return submissions;
+  if (wave !== undefined) {
+    submissions = submissions.filter((sub) => (sub.wave ?? 1) === wave);
+  }
   
-  return submissions.filter((sub) => sub.status === statusFilter);
+  if (statusFilter) {
+    submissions = submissions.filter((sub) => sub.status === statusFilter);
+  }
+  
+  return submissions;
 }
 
 // Обновить submission (для approve/reject)
